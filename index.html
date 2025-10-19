@@ -6,26 +6,21 @@
 <title>AI / Tech News Aggregator</title>
 <style>
 :root { color-scheme: light dark; }
-body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  margin: 0; padding: 1.5rem;
-  max-width: 900px; margin-inline: auto;
-}
-h1 { font-size: 1.6rem; margin-bottom: .5rem; }
-button, select { padding: .4rem .8rem; font-size: .9rem; }
-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-th, td { border-bottom: 1px solid #ddd; padding: .6rem; text-align: left; vertical-align: top; }
-tr:hover { background: rgba(0,0,0,0.03); }
-footer { margin-top: 1rem; font-size: .8rem; opacity: .7; }
-@media (prefers-color-scheme: dark){
-  th,td{border-color:#333;}
-}
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin:0; padding:1.5rem; max-width:960px; margin-inline:auto; }
+h1 { font-size:1.6rem; margin:0 0 .5rem; }
+.controls { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin:.5rem 0 1rem; }
+select, button { padding:.45rem .7rem; font-size:.95rem; }
+.status { font-size:.9rem; opacity:.75; }
+table { width:100%; border-collapse:collapse; }
+th, td { padding:.6rem; border-bottom:1px solid #ddd; text-align:left; vertical-align:top; }
+tr:hover { background:rgba(0,0,0,.03); }
+@media (prefers-color-scheme:dark){ th,td{border-color:#333;} tr:hover{background:rgba(255,255,255,.04);} }
 </style>
 </head>
 <body>
 <h1>📰 AI &amp; Tech News</h1>
 
-<div style="margin-bottom:.8rem">
+<div class="controls">
   <label>Lookback
     <select id="hours">
       <option value="24">24h</option>
@@ -43,17 +38,15 @@ footer { margin-top: 1rem; font-size: .8rem; opacity: .7; }
     </select>
   </label>
   <button id="fetchBtn">Fetch</button>
-  <span id="status" style="margin-left:8px;font-size:.9rem;opacity:.8;">idle</span>
+  <span id="status" class="status">idle</span>
 </div>
 
 <table id="newsTable">
   <thead>
-    <tr><th>#</th><th>Title</th><th>Source</th><th>Date</th></tr>
+    <tr><th style="width:52px">#</th><th>Title</th><th style="width:220px">Source</th><th style="width:120px">Date</th></tr>
   </thead>
   <tbody></tbody>
 </table>
-
-<footer>Fetches live from multiple AI/tech RSS feeds. Works fully client-side.</footer>
 
 <script>
 const feeds = [
@@ -66,71 +59,130 @@ const feeds = [
   { name: "The Verge – AI", url: "https://www.theverge.com/artificial-intelligence/rss/index.xml" }
 ];
 
+// Two CORS-friendly proxies; we’ll try them in order per feed
+const proxies = [
+  (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  (u) => `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(u)}`
+];
+
 const statusEl = document.getElementById("status");
 const tbody = document.querySelector("#newsTable tbody");
+const hoursSel = document.getElementById("hours");
+const maxSel   = document.getElementById("max");
 
-async function fetchNews() {
-  const hours = parseInt(document.getElementById("hours").value);
-  const max = parseInt(document.getElementById("max").value);
-  const cutoff = Date.now() - hours * 3600 * 1000;
+function escapeHtml(s=""){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function tryParseDate(text){
+  // lightweight parse: try Date constructor; fallback empty
+  const d = text ? new Date(text) : null;
+  return isNaN(d?.getTime?.()) ? null : d;
+}
+
+function parseRSS(xml, fallbackSource){
+  // Handles RSS 2.0 (<item>) and Atom (<entry>)
   const items = [];
+  const isAtom = xml.querySelector("feed > entry") !== null;
+  const sourceTitle = xml.querySelector("channel > title")?.textContent?.trim()
+                    || xml.querySelector("feed > title")?.textContent?.trim()
+                    || fallbackSource;
+
+  if (isAtom) {
+    xml.querySelectorAll("feed > entry").forEach(entry => {
+      const title = entry.querySelector("title")?.textContent?.trim() || "(untitled)";
+      const linkEl = entry.querySelector("link[rel='alternate']") || entry.querySelector("link[href]");
+      const link = linkEl?.getAttribute("href") || "";
+      const dateText = entry.querySelector("updated, published")?.textContent || "";
+      items.push({ title, url: link, source: sourceTitle, date: tryParseDate(dateText) });
+    });
+  } else {
+    xml.querySelectorAll("channel > item").forEach(item => {
+      const title = item.querySelector("title")?.textContent?.trim() || "(untitled)";
+      const link = item.querySelector("link")?.textContent?.trim() || item.querySelector("guid")?.textContent?.trim() || "";
+      const dateText = item.querySelector("pubDate")?.textContent || item.querySelector("dc\\:date")?.textContent || "";
+      items.push({ title, url: link, source: sourceTitle, date: tryParseDate(dateText) });
+    });
+  }
+  return items;
+}
+
+async function fetchViaProxies(url){
+  let lastErr;
+  for (const makeUrl of proxies) {
+    try {
+      const res = await fetch(makeUrl(url));
+      if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
+      const text = await res.text();
+      return text;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("All proxies failed");
+}
+
+async function fetchNews(){
+  const hours = parseInt(hoursSel.value,10);
+  const max   = parseInt(maxSel.value,10);
+  const cutoff = Date.now() - hours * 3600 * 1000;
+
   statusEl.textContent = "loading…";
   tbody.innerHTML = "";
 
+  const allItems = [];
+
   for (const f of feeds) {
     try {
-      const proxyUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(f.url);
-      const res = await fetch(proxyUrl);
-      const data = await res.json();
-      (data.items || []).forEach(e => {
-        const d = e.pubDate ? new Date(e.pubDate) : null;
-        if (!d || d.getTime() >= cutoff) {
-          items.push({
-            title: e.title,
-            link: e.link,
-            source: f.name,
-            date: d
-          });
+      const xmlText = await fetchViaProxies(f.url);
+      const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+      // If parser reports error
+      if (xml.querySelector("parsererror")) {
+        console.warn("Parser error:", f.url);
+        continue;
+      }
+      const items = parseRSS(xml, f.name);
+      for (const it of items) {
+        if (!it.date || it.date.getTime() >= cutoff) {
+          allItems.push(it);
         }
-      });
+      }
     } catch (err) {
-      console.warn("Feed failed:", f.name, err);
+      console.warn("Feed failed:", f.name, err?.message || err);
     }
   }
 
-  // dedupe by link
+  // Dedupe by URL+Title key
   const seen = new Set();
-  const unique = items.filter(it => {
-    if (seen.has(it.link)) return false;
-    seen.add(it.link);
+  const unique = allItems.filter(it => {
+    const key = (it.url||"") + "|" + (it.title||"");
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 
-  unique.sort((a,b) => (b.date||0) - (a.date||0));
+  // Sort by date desc (undated last)
+  unique.sort((a,b) => (b.date?.getTime?.()||0) - (a.date?.getTime?.()||0));
   const top = unique.slice(0, max);
 
   if (!top.length) {
-    tbody.innerHTML = "<tr><td colspan='4'>No news found (maybe CORS blocked or API limit reached)</td></tr>";
+    tbody.innerHTML = `<tr><td colspan="4">No news found. The free proxies may be throttled right now — click “Fetch” again in a few seconds.</td></tr>`;
     statusEl.textContent = "no data";
     return;
   }
 
-  for (let i=0; i<top.length; i++) {
-    const it = top[i];
-    const dstr = it.date ? it.date.toISOString().split("T")[0] : "";
+  // Render rows
+  top.forEach((it, i) => {
     const tr = document.createElement("tr");
+    const dstr = it.date ? it.date.toISOString().slice(0,10) : "";
     tr.innerHTML = `
       <td>${i+1}</td>
-      <td><a href="${it.link}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a></td>
-      <td>${escapeHtml(it.source)}</td>
+      <td><a href="${it.url}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a></td>
+      <td>${escapeHtml(it.source || "")}</td>
       <td>${dstr}</td>`;
     tbody.appendChild(tr);
-  }
+  });
 
   statusEl.textContent = `ok (${top.length})`;
 }
-
-function escapeHtml(s=""){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 document.getElementById("fetchBtn").addEventListener("click", fetchNews);
 fetchNews();
