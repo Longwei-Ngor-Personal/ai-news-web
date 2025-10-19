@@ -2,13 +2,11 @@
   "name": "ai-news-web",
   "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "vercel dev",
-    "build": "echo \"Nothing to build (static site)\"",
-    "start": "vercel dev"
-  },
   "dependencies": {
     "rss-parser": "3.13.0",
     "dayjs": "1.11.11"
+  },
+  "scripts": {
+    "dev": "vercel dev"
   }
 }

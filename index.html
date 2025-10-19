@@ -55,6 +55,8 @@
     const maxSel = $("#max");
     const btn = $("#refresh");
 
+    function escapeHtml(s=""){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
     async function fetchNews(){
       statusEl.textContent = "loading…";
       tbody.innerHTML = "";
@@ -86,10 +88,7 @@
       }
     }
 
-    function escapeHtml(s=""){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-
     btn.addEventListener("click", fetchNews);
-    // Auto-run on first load
     fetchNews();
   </script>
 </body>

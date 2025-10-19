@@ -1,7 +1,3 @@
-// Serverless endpoint: fetches/merges RSS → JSON for the frontend.
-// Deploy on Vercel. No secrets needed. No Telegram.
-// GET /api/news?hours=48&max=20
-
 import Parser from "rss-parser";
 import dayjs from "dayjs";
 
@@ -16,8 +12,6 @@ const FEEDS = [
   { name: "TechCrunch AI", url: "https://techcrunch.com/tag/artificial-intelligence/feed/" },
   { name: "The Verge – AI", url: "https://www.theverge.com/artificial-intelligence/rss/index.xml" }
 ];
-
-const escapeHtml = (s = "") => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 
 export default async function handler(req, res) {
   try {
@@ -38,34 +32,25 @@ export default async function handler(req, res) {
           });
         }
       } catch (err) {
-        // Skip failing feeds; continue
         console.warn("Feed error:", f.url, err?.message);
       }
     }
 
-    // Dedupe (url+title), keep newest
     const map = new Map();
     for (const it of items) {
       const key = (it.url || "") + "|" + (it.title || "");
       const prev = map.get(key);
       if (!prev || (it.date && (!prev.date || it.date > prev.date))) map.set(key, it);
     }
-    items = [...map.values()];
 
-    // Time filter & sort desc
     const cutoff = dayjs().subtract(hours, "hour");
-    items = items
+    items = [...map.values()]
       .filter(it => !it.date || dayjs(it.date).isAfter(cutoff))
       .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
       .slice(0, max);
 
-    // Return JSON for frontend
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-    res.status(200).json({
-      ok: true,
-      count: items.length,
-      items
-    });
+    res.status(200).json({ ok: true, count: items.length, items });
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e) });
   }
