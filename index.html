@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI / Tech News — Top X</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>AI / Tech News</h1>
+    <div class="controls">
+      <label>Lookback
+        <select id="hours">
+          <option value="24">24h</option>
+          <option value="48" selected>48h</option>
+          <option value="72">72h</option>
+          <option value="168">7d</option>
+        </select>
+      </label>
+      <label>Show
+        <select id="max">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="30">30</option>
+          <option value="50">50</option>
+        </select>
+      </label>
+      <button id="refresh">Fetch</button>
+      <span id="status" class="badge">idle</span>
+    </div>
+  </header>
+
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th style="width:52px">#</th>
+        <th>Title</th>
+        <th style="width:200px">Source</th>
+        <th style="width:130px">Date</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <footer>
+    Tip: Add this page to your phone’s Home Screen. Data fetched live from multiple RSS feeds on click.
+  </footer>
+
+  <script>
+    const $ = (s)=>document.querySelector(s);
+    const tbody = $("#tbl tbody");
+    const statusEl = $("#status");
+    const hoursSel = $("#hours");
+    const maxSel = $("#max");
+    const btn = $("#refresh");
+
+    async function fetchNews(){
+      statusEl.textContent = "loading…";
+      tbody.innerHTML = "";
+      try{
+        const u = `/api/news?hours=${encodeURIComponent(hoursSel.value)}&max=${encodeURIComponent(maxSel.value)}`;
+        const res = await fetch(u);
+        const json = await res.json();
+        if(!res.ok || !json.ok){
+          statusEl.textContent = "error";
+          tbody.innerHTML = `<tr><td colspan="4">Error: ${(json && json.error) || res.statusText}</td></tr>`;
+          return;
+        }
+        json.items.forEach((it, i)=>{
+          const tr = document.createElement("tr");
+          const dt = it.date ? new Date(it.date) : null;
+          const dstr = dt ? dt.toISOString().slice(0,10) : "";
+          tr.innerHTML = `
+            <td>${i+1}</td>
+            <td><a href="${it.url}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a></td>
+            <td>${escapeHtml(it.source||"")}</td>
+            <td>${dstr}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        statusEl.textContent = `ok (${json.count})`;
+      }catch(e){
+        statusEl.textContent = "network error";
+        tbody.innerHTML = `<tr><td colspan="4">${String(e)}</td></tr>`;
+      }
+    }
+
+    function escapeHtml(s=""){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+    btn.addEventListener("click", fetchNews);
+    // Auto-run on first load
+    fetchNews();
+  </script>
+</body>
+</html>
