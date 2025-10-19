@@ -1,95 +1,139 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI / Tech News — Top X</title>
-  <link rel="stylesheet" href="/style.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI / Tech News Aggregator</title>
+<style>
+:root { color-scheme: light dark; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  margin: 0; padding: 1.5rem;
+  max-width: 900px; margin-inline: auto;
+}
+h1 { font-size: 1.6rem; margin-bottom: .5rem; }
+button, select { padding: .4rem .8rem; font-size: .9rem; }
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th, td { border-bottom: 1px solid #ddd; padding: .6rem; text-align: left; vertical-align: top; }
+tr:hover { background: rgba(0,0,0,0.03); }
+footer { margin-top: 1rem; font-size: .8rem; opacity: .7; }
+@media (prefers-color-scheme: dark){
+  th,td{border-color:#333;}
+}
+</style>
 </head>
 <body>
-  <header>
-    <h1>AI / Tech News</h1>
-    <div class="controls">
-      <label>Lookback
-        <select id="hours">
-          <option value="24">24h</option>
-          <option value="48" selected>48h</option>
-          <option value="72">72h</option>
-          <option value="168">7d</option>
-        </select>
-      </label>
-      <label>Show
-        <select id="max">
-          <option value="10">10</option>
-          <option value="20" selected>20</option>
-          <option value="30">30</option>
-          <option value="50">50</option>
-        </select>
-      </label>
-      <button id="refresh">Fetch</button>
-      <span id="status" class="badge">idle</span>
-    </div>
-  </header>
+<h1>📰 AI &amp; Tech News</h1>
 
-  <table id="tbl">
-    <thead>
-      <tr>
-        <th style="width:52px">#</th>
-        <th>Title</th>
-        <th style="width:200px">Source</th>
-        <th style="width:130px">Date</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<div style="margin-bottom:.8rem">
+  <label>Lookback
+    <select id="hours">
+      <option value="24">24h</option>
+      <option value="48" selected>48h</option>
+      <option value="72">72h</option>
+      <option value="168">7d</option>
+    </select>
+  </label>
+  <label>Show
+    <select id="max">
+      <option value="10">10</option>
+      <option value="20" selected>20</option>
+      <option value="30">30</option>
+      <option value="50">50</option>
+    </select>
+  </label>
+  <button id="fetchBtn">Fetch</button>
+  <span id="status" style="margin-left:8px;font-size:.9rem;opacity:.8;">idle</span>
+</div>
 
-  <footer>
-    Tip: Add this page to your phone’s Home Screen. Data fetched live from multiple RSS feeds on click.
-  </footer>
+<table id="newsTable">
+  <thead>
+    <tr><th>#</th><th>Title</th><th>Source</th><th>Date</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-  <script>
-    const $ = (s)=>document.querySelector(s);
-    const tbody = $("#tbl tbody");
-    const statusEl = $("#status");
-    const hoursSel = $("#hours");
-    const maxSel = $("#max");
-    const btn = $("#refresh");
+<footer>Fetches live from multiple AI/tech RSS feeds. Works fully client-side.</footer>
 
-    function escapeHtml(s=""){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+<script>
+const feeds = [
+  { name: "OpenAI", url: "https://openai.com/news/rss.xml" },
+  { name: "Google AI Blog", url: "https://ai.googleblog.com/feeds/posts/default" },
+  { name: "Hugging Face", url: "https://huggingface.co/blog/feed.xml" },
+  { name: "NVIDIA", url: "https://blogs.nvidia.com/blog/category/ai/feed/" },
+  { name: "Microsoft Research", url: "https://www.microsoft.com/en-us/research/feed/" },
+  { name: "TechCrunch AI", url: "https://techcrunch.com/tag/artificial-intelligence/feed/" },
+  { name: "The Verge – AI", url: "https://www.theverge.com/artificial-intelligence/rss/index.xml" }
+];
 
-    async function fetchNews(){
-      statusEl.textContent = "loading…";
-      tbody.innerHTML = "";
-      try{
-        const u = `/api/news?hours=${encodeURIComponent(hoursSel.value)}&max=${encodeURIComponent(maxSel.value)}`;
-        const res = await fetch(u);
-        const json = await res.json();
-        if(!res.ok || !json.ok){
-          statusEl.textContent = "error";
-          tbody.innerHTML = `<tr><td colspan="4">Error: ${(json && json.error) || res.statusText}</td></tr>`;
-          return;
+const statusEl = document.getElementById("status");
+const tbody = document.querySelector("#newsTable tbody");
+
+async function fetchNews() {
+  const hours = parseInt(document.getElementById("hours").value);
+  const max = parseInt(document.getElementById("max").value);
+  const cutoff = Date.now() - hours * 3600 * 1000;
+  const items = [];
+  statusEl.textContent = "loading…";
+  tbody.innerHTML = "";
+
+  for (const f of feeds) {
+    try {
+      const proxyUrl = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(f.url);
+      const res = await fetch(proxyUrl);
+      const data = await res.json();
+      (data.items || []).forEach(e => {
+        const d = e.pubDate ? new Date(e.pubDate) : null;
+        if (!d || d.getTime() >= cutoff) {
+          items.push({
+            title: e.title,
+            link: e.link,
+            source: f.name,
+            date: d
+          });
         }
-        json.items.forEach((it, i)=>{
-          const tr = document.createElement("tr");
-          const dt = it.date ? new Date(it.date) : null;
-          const dstr = dt ? dt.toISOString().slice(0,10) : "";
-          tr.innerHTML = `
-            <td>${i+1}</td>
-            <td><a href="${it.url}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a></td>
-            <td>${escapeHtml(it.source||"")}</td>
-            <td>${dstr}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-        statusEl.textContent = `ok (${json.count})`;
-      }catch(e){
-        statusEl.textContent = "network error";
-        tbody.innerHTML = `<tr><td colspan="4">${String(e)}</td></tr>`;
-      }
+      });
+    } catch (err) {
+      console.warn("Feed failed:", f.name, err);
     }
+  }
 
-    btn.addEventListener("click", fetchNews);
-    fetchNews();
-  </script>
+  // dedupe by link
+  const seen = new Set();
+  const unique = items.filter(it => {
+    if (seen.has(it.link)) return false;
+    seen.add(it.link);
+    return true;
+  });
+
+  unique.sort((a,b) => (b.date||0) - (a.date||0));
+  const top = unique.slice(0, max);
+
+  if (!top.length) {
+    tbody.innerHTML = "<tr><td colspan='4'>No news found (maybe CORS blocked or API limit reached)</td></tr>";
+    statusEl.textContent = "no data";
+    return;
+  }
+
+  for (let i=0; i<top.length; i++) {
+    const it = top[i];
+    const dstr = it.date ? it.date.toISOString().split("T")[0] : "";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td><a href="${it.link}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a></td>
+      <td>${escapeHtml(it.source)}</td>
+      <td>${dstr}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  statusEl.textContent = `ok (${top.length})`;
+}
+
+function escapeHtml(s=""){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+document.getElementById("fetchBtn").addEventListener("click", fetchNews);
+fetchNews();
+</script>
 </body>
 </html>
