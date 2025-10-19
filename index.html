@@ -5,16 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AI / Tech News Aggregator</title>
 <style>
-:root { color-scheme: light dark; }
-body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin:0; padding:1.5rem; max-width:960px; margin-inline:auto; }
-h1 { font-size:1.6rem; margin:0 0 .5rem; }
-.controls { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin:.5rem 0 1rem; }
-select, button { padding:.45rem .7rem; font-size:.95rem; }
-.status { font-size:.9rem; opacity:.75; }
-table { width:100%; border-collapse:collapse; }
-th, td { padding:.6rem; border-bottom:1px solid #ddd; text-align:left; vertical-align:top; }
-tr:hover { background:rgba(0,0,0,.03); }
-@media (prefers-color-scheme:dark){ th,td{border-color:#333;} tr:hover{background:rgba(255,255,255,.04);} }
+:root{color-scheme:light dark}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;padding:1.2rem;max-width:980px;margin-inline:auto}
+h1{font-size:1.5rem;margin:.2rem 0 .8rem}
+.controls{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.6rem}
+select,button{padding:.45rem .7rem;font-size:.95rem}
+.status{font-size:.9rem;opacity:.75}
+table{width:100%;border-collapse:collapse;margin-top:.6rem}
+th,td{padding:.6rem;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}
+.feedlog{font-size:.85rem;opacity:.8;margin-top:.5rem;line-height:1.4}
+.feedlog b{font-weight:600}
+@media (prefers-color-scheme:dark){th,td{border-color:#333}}
 </style>
 </head>
 <body>
@@ -43,145 +44,210 @@ tr:hover { background:rgba(0,0,0,.03); }
 
 <table id="newsTable">
   <thead>
-    <tr><th style="width:52px">#</th><th>Title</th><th style="width:220px">Source</th><th style="width:120px">Date</th></tr>
+    <tr><th style="width:52px">#</th><th>Title</th><th style="width:240px">Source</th><th style="width:120px">Date</th></tr>
   </thead>
   <tbody></tbody>
 </table>
 
+<div class="feedlog" id="feedlog"></div>
+
 <script>
+// === Add/edit your sources here ===
+// (Many big outlets are paywalled; RSS headlines still work.)
 const feeds = [
+  // Core AI/tech
   { name: "OpenAI", url: "https://openai.com/news/rss.xml" },
   { name: "Google AI Blog", url: "https://ai.googleblog.com/feeds/posts/default" },
   { name: "Hugging Face", url: "https://huggingface.co/blog/feed.xml" },
   { name: "NVIDIA", url: "https://blogs.nvidia.com/blog/category/ai/feed/" },
   { name: "Microsoft Research", url: "https://www.microsoft.com/en-us/research/feed/" },
   { name: "TechCrunch AI", url: "https://techcrunch.com/tag/artificial-intelligence/feed/" },
-  { name: "The Verge – AI", url: "https://www.theverge.com/artificial-intelligence/rss/index.xml" }
+  { name: "The Verge – AI", url: "https://www.theverge.com/artificial-intelligence/rss/index.xml" },
+
+  // Big outlets
+  { name: "BBC Technology", url: "https://feeds.bbci.co.uk/news/technology/rss.xml" },
+  { name: "NYT Technology", url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml" },
+  { name: "WSJ Tech (WSJD)", url: "https://feeds.a.dj.com/rss/RSSWSJD.xml" },
+  { name: "Wired AI", url: "https://www.wired.com/feed/tag/artificial-intelligence/latest/rss" },
+  { name: "The Guardian – AI", url: "https://www.theguardian.com/technology/artificial-intelligence/rss" }
 ];
 
-// Two CORS-friendly proxies; we’ll try them in order per feed
-const proxies = [
-  (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  (u) => `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(u)}`
+// Multiple CORS-friendly proxies; we’ll try in order per request.
+const proxyFns = [
+  (u)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  (u)=>`https://cors.isomorphic-git.org/${u}`,
+  (u)=>`https://thingproxy.freeboard.io/fetch/${encodeURIComponent(u)}`
 ];
 
 const statusEl = document.getElementById("status");
-const tbody = document.querySelector("#newsTable tbody");
+const tbody    = document.querySelector("#newsTable tbody");
 const hoursSel = document.getElementById("hours");
 const maxSel   = document.getElementById("max");
+const feedlog  = document.getElementById("feedlog");
 
-function escapeHtml(s=""){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-
-function tryParseDate(text){
-  // lightweight parse: try Date constructor; fallback empty
+// ---- Helpers ----
+const escapeHtml = (s="") => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const dstr = (d) => d ? new Date(d).toISOString().slice(0,10) : "";
+const tryParseDate = (text) => {
   const d = text ? new Date(text) : null;
   return isNaN(d?.getTime?.()) ? null : d;
-}
+};
 
-function parseRSS(xml, fallbackSource){
-  // Handles RSS 2.0 (<item>) and Atom (<entry>)
+function parseXML(xmlText, fallbackSource){
+  const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+  if (xml.querySelector("parsererror")) throw new Error("XML parse error");
   const items = [];
-  const isAtom = xml.querySelector("feed > entry") !== null;
   const sourceTitle = xml.querySelector("channel > title")?.textContent?.trim()
                     || xml.querySelector("feed > title")?.textContent?.trim()
                     || fallbackSource;
 
-  if (isAtom) {
-    xml.querySelectorAll("feed > entry").forEach(entry => {
-      const title = entry.querySelector("title")?.textContent?.trim() || "(untitled)";
-      const linkEl = entry.querySelector("link[rel='alternate']") || entry.querySelector("link[href]");
-      const link = linkEl?.getAttribute("href") || "";
-      const dateText = entry.querySelector("updated, published")?.textContent || "";
-      items.push({ title, url: link, source: sourceTitle, date: tryParseDate(dateText) });
-    });
-  } else {
-    xml.querySelectorAll("channel > item").forEach(item => {
-      const title = item.querySelector("title")?.textContent?.trim() || "(untitled)";
-      const link = item.querySelector("link")?.textContent?.trim() || item.querySelector("guid")?.textContent?.trim() || "";
-      const dateText = item.querySelector("pubDate")?.textContent || item.querySelector("dc\\:date")?.textContent || "";
-      items.push({ title, url: link, source: sourceTitle, date: tryParseDate(dateText) });
-    });
-  }
+  // Atom
+  xml.querySelectorAll("feed > entry").forEach(entry=>{
+    const title = entry.querySelector("title")?.textContent?.trim() || "(untitled)";
+    const linkEl = entry.querySelector("link[rel='alternate']") || entry.querySelector("link[href]");
+    const link = linkEl?.getAttribute("href") || "";
+    const dateText = entry.querySelector("updated, published")?.textContent || "";
+    items.push({ title, url: link, source: sourceTitle, date: tryParseDate(dateText) });
+  });
+
+  // RSS
+  xml.querySelectorAll("channel > item").forEach(item=>{
+    const title = item.querySelector("title")?.textContent?.trim() || "(untitled)";
+    const link = item.querySelector("link")?.textContent?.trim()
+              || item.querySelector("guid")?.textContent?.trim() || "";
+    const dateText = item.querySelector("pubDate")?.textContent
+                  || item.querySelector("dc\\:date")?.textContent || "";
+    items.push({ title, url: link, source: sourceTitle, date: tryParseDate(dateText) });
+  });
   return items;
 }
 
-async function fetchViaProxies(url){
+function withTimeout(ms, promise){
+  const ctl = new AbortController();
+  const t = setTimeout(()=>ctl.abort("timeout"), ms);
+  return Promise.race([
+    promise(ctl.signal).finally(()=>clearTimeout(t)),
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")), ms+50))
+  ]);
+}
+
+async function fetchViaProxies(url, timeoutMs=10000){
   let lastErr;
-  for (const makeUrl of proxies) {
+  for (const make of proxyFns){
+    const proxied = make(url);
     try {
-      const res = await fetch(makeUrl(url));
-      if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
-      const text = await res.text();
+      const text = await withTimeout(timeoutMs, (signal)=> fetch(proxied, { signal }).then(r=>{
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.text();
+      }));
       return text;
-    } catch (e) {
-      lastErr = e;
-    }
+    } catch(e){ lastErr = e; }
   }
   throw lastErr || new Error("All proxies failed");
 }
 
+// Simple concurrency limiter (to avoid stampeding proxies)
+async function pool(items, limit, worker){
+  const ret = [];
+  let i = 0, active = 0;
+  return new Promise((resolve)=>{
+    const next = () => {
+      while (active < limit && i < items.length){
+        const idx = i++; active++;
+        worker(items[idx]).then((val)=> ret[idx]=val).catch((e)=> ret[idx]={error:String(e)}).finally(()=>{
+          active--; (i===items.length && active===0) ? resolve(ret) : next();
+        });
+      }
+    };
+    next();
+  });
+}
+
+// Local cache: key by hours+max; expire in 10 minutes
+function cacheKey(hours, max){ return `aiNewsCache:${hours}:${max}`; }
+function loadCache(hours, max){
+  try{
+    const raw = localStorage.getItem(cacheKey(hours,max));
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (Date.now() - obj.ts > 10*60*1000) return null; // 10 min
+    return obj.items;
+  }catch{ return null; }
+}
+function saveCache(hours, max, items){
+  try{
+    localStorage.setItem(cacheKey(hours,max), JSON.stringify({ts: Date.now(), items}));
+  }catch{}
+}
+
+// ---- Main ----
 async function fetchNews(){
   const hours = parseInt(hoursSel.value,10);
   const max   = parseInt(maxSel.value,10);
-  const cutoff = Date.now() - hours * 3600 * 1000;
+  const cutoff = Date.now() - hours*3600*1000;
+
+  // Try cache first for instant paint
+  const cached = loadCache(hours, max);
+  if (cached) renderTable(cached, `(cached ${cached.length})`);
 
   statusEl.textContent = "loading…";
-  tbody.innerHTML = "";
+  feedlog.innerHTML = "";
+  const start = performance.now();
 
-  const allItems = [];
-
-  for (const f of feeds) {
-    try {
-      const xmlText = await fetchViaProxies(f.url);
-      const xml = new DOMParser().parseFromString(xmlText, "application/xml");
-      // If parser reports error
-      if (xml.querySelector("parsererror")) {
-        console.warn("Parser error:", f.url);
-        continue;
-      }
-      const items = parseRSS(xml, f.name);
-      for (const it of items) {
-        if (!it.date || it.date.getTime() >= cutoff) {
-          allItems.push(it);
-        }
-      }
-    } catch (err) {
-      console.warn("Feed failed:", f.name, err?.message || err);
+  // Fetch feeds in parallel with a small concurrency (e.g., 4)
+  const results = await pool(feeds, 4, async (f)=>{
+    try{
+      const xmlText = await fetchViaProxies(f.url, 10000);
+      const parsed = parseXML(xmlText, f.name).filter(it => !it.date || it.date.getTime() >= cutoff);
+      return { ok: true, items: parsed, feed: f.name };
+    }catch(e){
+      return { ok: false, error: String(e), items: [], feed: f.name };
     }
-  }
-
-  // Dedupe by URL+Title key
-  const seen = new Set();
-  const unique = allItems.filter(it => {
-    const key = (it.url||"") + "|" + (it.title||"");
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
   });
 
-  // Sort by date desc (undated last)
-  unique.sort((a,b) => (b.date?.getTime?.()||0) - (a.date?.getTime?.()||0));
-  const top = unique.slice(0, max);
+  const all = [];
+  results.forEach(r=>{
+    if (r.ok) {
+      all.push(...r.items);
+      feedlog.insertAdjacentHTML("beforeend", `<div><b>${escapeHtml(r.feed)}</b>: ok (${r.items.length})</div>`);
+    } else {
+      feedlog.insertAdjacentHTML("beforeend", `<div><b>${escapeHtml(r.feed)}</b>: fail (${escapeHtml(r.error)})</div>`);
+    }
+  });
 
-  if (!top.length) {
-    tbody.innerHTML = `<tr><td colspan="4">No news found. The free proxies may be throttled right now — click “Fetch” again in a few seconds.</td></tr>`;
-    statusEl.textContent = "no data";
+  // Dedupe by URL+Title
+  const seen = new Set();
+  const uniq = all.filter(it=>{
+    const key = (it.url||"")+"|"+(it.title||"");
+    if (seen.has(key)) return false; seen.add(key); return true;
+  });
+
+  // Sort by date desc (undated last), cut to max
+  uniq.sort((a,b)=>(b.date?.getTime?.()||0)-(a.date?.getTime?.()||0));
+  const top = uniq.slice(0, max);
+
+  // Cache for quick re-opens within 10 min
+  saveCache(hours, max, top);
+
+  renderTable(top, `ok (${top.length}) • ${(performance.now()-start|0)}ms`);
+}
+
+function renderTable(items, statusText="ok"){
+  statusEl.textContent = statusText;
+  tbody.innerHTML = "";
+  if (!items.length){
+    tbody.innerHTML = `<tr><td colspan="4">No news found. Try a longer lookback or click again in a moment.</td></tr>`;
     return;
   }
-
-  // Render rows
-  top.forEach((it, i) => {
-    const tr = document.createElement("tr");
-    const dstr = it.date ? it.date.toISOString().slice(0,10) : "";
-    tr.innerHTML = `
+  items.forEach((it,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
       <td>${i+1}</td>
       <td><a href="${it.url}" target="_blank" rel="noopener">${escapeHtml(it.title)}</a></td>
-      <td>${escapeHtml(it.source || "")}</td>
-      <td>${dstr}</td>`;
+      <td>${escapeHtml(it.source||"")}</td>
+      <td>${dstr(it.date)}</td>`;
     tbody.appendChild(tr);
   });
-
-  statusEl.textContent = `ok (${top.length})`;
 }
 
 document.getElementById("fetchBtn").addEventListener("click", fetchNews);
