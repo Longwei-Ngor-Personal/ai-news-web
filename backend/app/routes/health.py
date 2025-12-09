@@ -8,7 +8,6 @@ router = APIRouter()
 def health_check():
     """
     Simple health check endpoint.
-    Returns basic info so we know the API is alive.
     """
     return {
         "status": "ok",
