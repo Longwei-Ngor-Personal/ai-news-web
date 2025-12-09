@@ -12,6 +12,65 @@ from ..schemas import ArticleOut
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
 
+# ------------------------
+# Default filtering logic
+# ------------------------
+
+# If the user does NOT specify include keywords, we'll use these as the default
+DEFAULT_INCLUDE_KEYWORDS = [
+    "ai",
+    "artificial intelligence",
+    "machine learning",
+    "ml",
+    "deep learning",
+    "neural network",
+    "neural networks",
+    "large language model",
+    "large language models",
+    "llm",
+    "llms",
+    "chatgpt",
+    "gpt-4",
+    "gpt4",
+    "gpt-5",
+    "openai",
+    "anthropic",
+    "deepmind",
+    "google ai",
+    "meta ai",
+    "generative ai",
+    "genai",
+    "transformer",
+    "foundation model",
+    "multimodal",
+    "autonomous agent",
+    "ai agent",
+    "computer vision",
+    "reinforcement learning",
+]
+
+# Things that are almost always junk / promo / SEO spam for our use case
+DEFAULT_EXCLUDE_KEYWORDS = [
+    "promo code",
+    "promocode",
+    "coupon",
+    "discount code",
+    "% off",
+    "percent off",
+    "sale",
+    "deal",
+    "flash sale",
+    "black friday",
+    "cyber monday",
+    "voucher",
+    "giveaway",
+    "sweepstakes",
+    "contest",
+    "sale ends",
+    "buy now",
+    "limited time offer",
+]
+
 
 def _parse_keywords(raw: Optional[str]) -> list[str]:
     if not raw:
@@ -26,21 +85,40 @@ def _is_ai_relevant(
     strict: bool,
 ) -> bool:
     """
-    Same idea as your original JS isAIRelevant:
-      - build a haystack from title + summary + source
-      - require at least 1 include keyword (or 2 in strict mode) if include list is non-empty
-      - reject if any exclude keyword appears
+    Relevance logic:
+      - Build a haystack from title + summary + source.
+      - Always use a baseline AI keyword list (DEFAULT_INCLUDE_KEYWORDS) if user doesn't pass include=.
+      - User's include keywords are ADDED on top of the defaults.
+      - Exclude list = user's exclude keywords + DEFAULT_EXCLUDE_KEYWORDS.
+      - strict = require >=2 matches from the include list; otherwise >=1.
     """
     hay = f"{article.title or ''} {article.summary or ''} {article.source or ''}".lower()
 
-    inc_matches = sum(1 for k in include_keywords if k in hay)
+    # Effective include list = defaults + user-provided
+    effective_inc = list(DEFAULT_INCLUDE_KEYWORDS)
     if include_keywords:
-        if strict and inc_matches < 2:
+        effective_inc.extend(include_keywords)
+    # dedupe
+    effective_inc = sorted(set(effective_inc))
+
+    # Effective exclude list = defaults + user-provided
+    effective_exc = list(DEFAULT_EXCLUDE_KEYWORDS)
+    if exclude_keywords:
+        effective_exc.extend(exclude_keywords)
+    effective_exc = sorted(set(effective_exc))
+
+    # Count matches
+    inc_matches = sum(1 for k in effective_inc if k in hay)
+    # Require matches if we have any include keywords at all (we always do because of defaults)
+    if strict:
+        if inc_matches < 2:
             return False
-        if not strict and inc_matches < 1:
+    else:
+        if inc_matches < 1:
             return False
 
-    if exclude_keywords and any(k in hay for k in exclude_keywords):
+    # If ANY exclude keyword matches, drop the article
+    if any(k in hay for k in effective_exc):
         return False
 
     return True
@@ -48,7 +126,7 @@ def _is_ai_relevant(
 
 def _apply_per_source_cap(articles: list[Article], cap: int) -> list[Article]:
     """
-    Similar to your JS applyPerSourceCap: keep at most 'cap' items per source.
+    Keep at most 'cap' items per source.
     """
     if not cap or cap <= 0:
         return articles
@@ -77,21 +155,21 @@ def list_articles(
     ),
     include: Optional[str] = Query(
         None,
-        description="Comma-separated keywords that must appear in title/summary/source",
+        description="Comma-separated EXTRA keywords that must appear in title/summary/source (added to default AI keywords).",
     ),
     exclude: Optional[str] = Query(
         None,
-        description="Comma-separated keywords that MUST NOT appear",
+        description="Comma-separated extra keywords that MUST NOT appear (added to default exclude list).",
     ),
     strict: bool = Query(
         False,
-        description="If true, require at least 2 include-keyword matches instead of 1",
+        description="If true, require at least 2 include-keyword matches instead of 1.",
     ),
     per_source_cap: Optional[int] = Query(
         None,
         ge=1,
         le=50,
-        description="Max items per source (after keyword/time filtering)",
+        description="Max items per source (after keyword/time filtering).",
     ),
     db: Session = Depends(get_db),
 ):
@@ -102,7 +180,7 @@ def list_articles(
     # Base query: newest first
     query = db.query(Article)
 
-    # Time window based on *published_at*, not fetch time
+    # Time window based on *published_at* (what the feed reports)
     if hours is not None:
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         query = query.filter(Article.published_at >= cutoff)
@@ -115,7 +193,7 @@ def list_articles(
     inc_list = _parse_keywords(include)
     exc_list = _parse_keywords(exclude)
 
-    # Keyword filtering
+    # Keyword filtering with defaults + user-provided
     filtered = [
         art
         for art in raw_items
@@ -126,5 +204,5 @@ def list_articles(
     if per_source_cap:
         filtered = _apply_per_source_cap(filtered, per_source_cap)
 
-    # The query was already sorted newest first; slice to requested limit
+    # Already sorted newest first; slice to requested limit
     return filtered[:limit]
