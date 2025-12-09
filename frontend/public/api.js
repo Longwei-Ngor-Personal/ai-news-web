@@ -12,3 +12,4 @@ async function fetchArticles(limit = 100) {
 
   return res.json();
 }
+console.log("API_BASE =", API_BASE);
