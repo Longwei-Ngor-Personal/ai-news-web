@@ -1,7 +1,6 @@
-// Base URL for your backend API.
-// - Locally:       http://localhost:8000
-// - On the VPS:    http://YOUR_SERVER_IP:8000 or https://yourdomain/api
-const API_BASE = "https://news.longweingor.dev";
+// Base URL for your backend API (behind Caddy).
+// We’ll route /api/* to FastAPI.
+const API_BASE = "https://news.longweingor.dev/api";
 
 async function fetchArticles(limit = 100) {
   const url = `${API_BASE}/articles?limit=${encodeURIComponent(limit)}`;
