@@ -1,5 +1,7 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import Column, Integer, String, DateTime, Text
-from datetime import datetime
+
 from .db import Base
 
 
@@ -10,6 +12,10 @@ class Article(Base):
     title = Column(String(500), nullable=False)
     url = Column(String(500), nullable=False, unique=True)
     source = Column(String(200), nullable=False)
-    published_at = Column(DateTime, default=datetime.utcnow, index=True)
+    published_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
     summary = Column(Text, nullable=True)
     category = Column(String(100), nullable=True)

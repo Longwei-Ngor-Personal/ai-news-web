@@ -1,4 +1,3 @@
-from datetime import date
 from typing import List
 
 from fastapi import APIRouter, Depends, Query
@@ -17,6 +16,6 @@ def list_articles(
     db: Session = Depends(get_db),
 ):
     """
-    Return the latest articles (up to 'limit').
+    Return the latest articles from the database.
     """
     return crud.get_articles(db=db, limit=limit)

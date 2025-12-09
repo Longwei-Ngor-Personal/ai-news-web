@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from ..db import SessionLocal
 from ..models import Article
@@ -13,7 +13,7 @@ def seed_dummy_articles():
             print(f"DB already has {existing_count} articles; skipping seed.")
             return
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         samples = [
             Article(

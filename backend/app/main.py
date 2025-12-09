@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+
 from .config import settings
 from .db import Base, engine
 from .routes import health_router, articles_router
@@ -13,7 +14,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
     )
 
-    # Create DB tables (simple, auto-migration for now)
+    # Create tables if they don't exist yet
     Base.metadata.create_all(bind=engine)
 
     # Routers
@@ -26,7 +27,7 @@ def create_app() -> FastAPI:
             "message": "Welcome to the AI News Web Digestor API",
             "docs_url": "/docs",
             "health_url": "/health",
-            "articles_url": "/articles",
+            "articles_url": "/articles/",
         }
 
     return app

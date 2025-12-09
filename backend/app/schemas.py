@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -15,4 +16,4 @@ class ArticleOut(ArticleBase):
     id: int
 
     class Config:
-        from_attributes = True  # tells Pydantic it can load from ORM objects
+        from_attributes = True  # allow Pydantic to read from ORM objects
