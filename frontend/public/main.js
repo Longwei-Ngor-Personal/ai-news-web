@@ -37,7 +37,7 @@ function renderTable(items, statusText = "ok") {
     const td = document.createElement("td");
     td.colSpan = 4;
     td.textContent =
-      "No articles available yet. Once the backend fetcher runs and stores RSS results, they will show up here.";
+      "No articles available for this window/keywords. Try widening lookback or adjusting filters.";
     tr.appendChild(td);
     tbody.appendChild(tr);
     return;
@@ -74,36 +74,35 @@ function renderTable(items, statusText = "ok") {
   });
 }
 
-// Main load function – calls backend instead of RSS
+// Main load function – now passes filters to backend
 async function loadFromBackend() {
   const max = parseInt(maxSel.value, 10) || 100;
-  const hours = parseInt(hoursSel.value, 10) || 6;
+  const hours = parseInt(hoursSel.value, 10) || null;
   const perCap = parseInt(perSourceSel.value, 10) || 0;
   const incList = parseList(kwIncEl.value);
   const excList = parseList(kwExcEl.value);
   const strict = !!strictEl.checked;
 
-  console.log("Filters (UI only for now):", {
-    hours,
-    max,
-    perCap,
-    incList,
-    excList,
-    strict,
-  });
+  console.log("Filters:", { max, hours, perCap, incList, excList, strict });
 
   statusEl.textContent = "loading…";
   tbody.innerHTML = "";
   feedlog.innerHTML =
-    "Fetching from backend /api/articles… (feed-by-feed status will be implemented later).";
+    "Backend is fetching from the database with your filters (time window, keywords, per-source cap).";
 
   try {
-    const articles = await fetchArticles(max);
+    const articles = await fetchArticles({
+      limit: max,
+      hours,
+      perCap,
+      incList,
+      excList,
+      strict,
+    });
     renderTable(articles, `ok (${articles.length})`);
   } catch (err) {
     console.error(err);
     statusEl.textContent = "error";
-    tbody.innerHTML = "";
     const tr = document.createElement("tr");
     const td = document.createElement("td");
     td.colSpan = 4;

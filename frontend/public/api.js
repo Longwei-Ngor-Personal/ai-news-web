@@ -3,9 +3,51 @@ const API_BASE = window.location.origin + "/api";
 
 console.log("API_BASE in api.js =", API_BASE);
 
-async function fetchArticles(limit = 100) {
-  // NOTE: trailing slash after 'articles/' to avoid 307 redirect
-  const url = `${API_BASE}/articles/?limit=${encodeURIComponent(limit)}`;
+/**
+ * Fetch articles with filters.
+ * opts = {
+ *   limit: number,
+ *   hours: number | null,
+ *   perCap: number,
+ *   incList: string[],
+ *   excList: string[],
+ *   strict: boolean
+ * }
+ */
+async function fetchArticles(opts = {}) {
+  const {
+    limit = 100,
+    hours = null,
+    perCap = 0,
+    incList = [],
+    excList = [],
+    strict = false,
+  } = opts;
+
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+
+  if (hours && Number.isFinite(hours)) {
+    params.set("hours", String(hours));
+  }
+
+  if (perCap && Number.isFinite(perCap)) {
+    params.set("per_source_cap", String(perCap));
+  }
+
+  if (incList.length) {
+    params.set("include", incList.join(","));
+  }
+
+  if (excList.length) {
+    params.set("exclude", excList.join(","));
+  }
+
+  if (strict) {
+    params.set("strict", "true");
+  }
+
+  const url = `${API_BASE}/articles/?${params.toString()}`;
   console.log("Requesting URL:", url);
 
   const res = await fetch(url);
