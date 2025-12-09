@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from .config import settings
 from .db import Base, engine
-from .routes import health_router, articles_router
+from .routes import health_router, articles_router, admin_router
 
 
 def create_app() -> FastAPI:
@@ -20,6 +20,7 @@ def create_app() -> FastAPI:
     # Routers
     app.include_router(health_router, tags=["Health"])
     app.include_router(articles_router)
+    app.include_router(admin_router)
 
     @app.get("/")
     def root():
@@ -28,6 +29,7 @@ def create_app() -> FastAPI:
             "docs_url": "/docs",
             "health_url": "/health",
             "articles_url": "/articles/",
+            "admin_fetch_url": "/admin/fetch-now",
         }
 
     return app
