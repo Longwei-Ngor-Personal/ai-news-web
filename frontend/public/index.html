@@ -2,22 +2,98 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>AI News Web Digestor</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>AI-Only News Aggregator</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header>
-      <h1>AI News Web Digestor</h1>
-      <p>Your daily summarized tech & AI news feed.</p>
-    </header>
+    <h1>🧠 AI-Only News</h1>
 
-    <main>
-      <section id="controls">
-        <button id="refresh-btn">Refresh Articles</button>
-      </section>
+    <div class="controls card">
+      <div class="row">
+        <label>
+          Lookback
+          <select id="hours">
+            <option value="3">Last 3 hours</option>
+            <option value="6" selected>Last 6 hours</option>
+            <option value="12">Last 12 hours</option>
+            <option value="24">Last 24 hours</option>
+            <option value="48">Last 48 hours</option>
+          </select>
+        </label>
 
-      <section id="articles"></section>
-    </main>
+        <label>
+          Max items
+          <select id="max">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+          </select>
+        </label>
+
+        <label>
+          Per source cap
+          <select id="perSource">
+            <option value="0" selected>No cap</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="inline">
+          <input type="checkbox" id="strict" />
+          Strict AI relevance (require more keyword matches)
+        </label>
+      </div>
+
+      <div class="row">
+        <label>Include keywords (comma-separated)</label>
+        <textarea id="kwInclude" placeholder="e.g., ai, machine learning, llm"></textarea>
+      </div>
+
+      <div class="row">
+        <label>Exclude keywords (comma-separated)</label>
+        <textarea id="kwExclude" placeholder="e.g., crypto, bitcoin"></textarea>
+      </div>
+
+      <div class="row">
+        <button id="fetchBtn">Refresh from backend</button>
+        <span class="status" id="status">idle</span>
+      </div>
+    </div>
+
+    <div class="wrapper">
+      <div class="card">
+        <h3>Latest AI news</h3>
+        <table id="newsTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>Source</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Feed status</h3>
+        <div id="feedlog" class="feedlog small">
+          Backend will aggregate feeds and store them in the database. This sidebar
+          can later show which feeds were fetched, how many items, errors, etc.
+        </div>
+        <hr />
+        <p class="small">
+          Filters (lookback, keywords, per-source cap) are currently UI-only; we’ll
+          wire them to backend query params in the next steps.
+        </p>
+      </div>
+    </div>
 
     <script src="../src/api.js"></script>
     <script src="../src/main.js"></script>
