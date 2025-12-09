@@ -4,7 +4,8 @@ const API_BASE = window.location.origin + "/api";
 console.log("API_BASE in api.js =", API_BASE);
 
 async function fetchArticles(limit = 100) {
-  const url = `${API_BASE}/articles?limit=${encodeURIComponent(limit)}`;
+  // NOTE: trailing slash after 'articles/' to avoid 307 redirect
+  const url = `${API_BASE}/articles/?limit=${encodeURIComponent(limit)}`;
   console.log("Requesting URL:", url);
 
   const res = await fetch(url);
