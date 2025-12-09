@@ -1,6 +1,6 @@
-// Base URL for your backend API (behind Caddy).
-// We’ll route /api/* to FastAPI.
-const API_BASE = "https://news.longweingor.dev/api";
+// We are serving the frontend and backend on the same domain.
+// So we can use a relative base URL:
+const API_BASE = "/api";
 
 async function fetchArticles(limit = 100) {
   const url = `${API_BASE}/articles?limit=${encodeURIComponent(limit)}`;
