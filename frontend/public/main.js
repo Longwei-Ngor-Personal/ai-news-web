@@ -202,6 +202,4 @@ async function loadFeedStatus() {
 // Wire up button + auto-load
 document.getElementById("fetchBtn").addEventListener("click", loadFromBackend);
 document.addEventListener("DOMContentLoaded", loadFromBackend);
-document
-  .getElementById("refreshFeedStatsBtn")
-  .addEventListener("click", loadFeedStatus);
+document.getElementById("refreshFeedStatsBtn").addEventListener("click", loadFeedStatus);
