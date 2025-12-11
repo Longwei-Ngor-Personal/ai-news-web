@@ -84,9 +84,6 @@ RSS_FEEDS = [
 
     # --- AI research & academia ---
 
-    # ArXiv AI category (keep this; we dropped cs.LG earlier)
-    {"name": "ArXiv cs.AI", "url": "https://rss.arxiv.org/rss/cs.AI", "category": "Research"},
-
     # MIT News AI topic
     {"name": "MIT News - AI", "url": "https://news.mit.edu/rss/topic/artificial-intelligence2", "category": "Research & Policy"},
 ]
