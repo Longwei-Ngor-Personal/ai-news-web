@@ -124,8 +124,83 @@ document.getElementById("adminFetchBtn").addEventListener("click", async () => {
   }
 });
 
+function renderFeedStatus(rows) {
+  feedStatusTbody.innerHTML = "";
+
+  if (!rows.length) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 7;
+    td.textContent = "No feed status logs yet.";
+    tr.appendChild(td);
+    feedStatusTbody.appendChild(tr);
+    return;
+  }
+
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    const tdName = document.createElement("td");
+    const a = document.createElement("a");
+    a.textContent = row.feed_name;
+    a.href = row.feed_url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    tdName.appendChild(a);
+
+    const tdStatus = document.createElement("td");
+    tdStatus.textContent = row.last_status || "-";
+
+    const tdLastFetch = document.createElement("td");
+    tdLastFetch.textContent = row.last_started_at
+      ? new Date(row.last_started_at).toLocaleString()
+      : "-";
+
+    const tdItems = document.createElement("td");
+    tdItems.textContent =
+      row.last_items_fetched != null ? String(row.last_items_fetched) : "-";
+
+    const tdInserted = document.createElement("td");
+    tdInserted.textContent =
+      row.last_inserted != null ? String(row.last_inserted) : "-";
+
+    const tdTotal = document.createElement("td");
+    tdTotal.textContent = String(row.total_articles || 0);
+
+    const tdError = document.createElement("td");
+    tdError.textContent = row.last_error_message || "";
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdStatus);
+    tr.appendChild(tdLastFetch);
+    tr.appendChild(tdItems);
+    tr.appendChild(tdInserted);
+    tr.appendChild(tdTotal);
+    tr.appendChild(tdError);
+
+    feedStatusTbody.appendChild(tr);
+  });
+}
+
+async function loadFeedStatus() {
+  try {
+    const rows = await fetchFeedStats();
+    renderFeedStatus(rows);
+  } catch (err) {
+    console.error(err);
+    feedStatusTbody.innerHTML = "";
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 7;
+    td.textContent = `Error loading feed status: ${err.message}`;
+    tr.appendChild(td);
+    feedStatusTbody.appendChild(tr);
+  }
+}
+
 
 
 // Wire up button + auto-load
 document.getElementById("fetchBtn").addEventListener("click", loadFromBackend);
 document.addEventListener("DOMContentLoaded", loadFromBackend);
+document  .getElementById("refreshFeedStatsBtn").addEventListener("click", loadFeedStatus);
