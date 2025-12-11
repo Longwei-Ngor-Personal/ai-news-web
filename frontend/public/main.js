@@ -111,6 +111,17 @@ async function loadFromBackend() {
     tbody.appendChild(tr);
   }
 }
+document.getElementById("adminFetchBtn").addEventListener("click", async () => {
+  try {
+    statusEl.textContent = "Running admin fetch…";
+    const result = await adminFetchNow();
+    statusEl.textContent = `Fetch complete: ${result.result.inserted} inserted (${result.result.skipped_existing} skipped)`;
+  } catch (err) {
+    statusEl.textContent = "Admin fetch error";
+    alert(err.message);
+  }
+});
+
 
 // Wire up button + auto-load
 document.getElementById("fetchBtn").addEventListener("click", loadFromBackend);

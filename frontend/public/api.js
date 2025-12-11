@@ -58,3 +58,14 @@ async function fetchArticles(opts = {}) {
 
   return res.json();
 }
+async function adminFetchNow() {
+  const url = `${API_BASE}/admin/fetch-now`;
+  const res = await fetch(url, { method: "POST" });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Fetch failed: HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
