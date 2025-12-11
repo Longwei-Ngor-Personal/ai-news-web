@@ -19,3 +19,21 @@ class Article(Base):
     )
     summary = Column(Text, nullable=True)
     category = Column(String(100), nullable=True)
+
+class FeedFetchLog(Base):
+    __tablename__ = "feed_fetch_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    feed_name = Column(String(255), nullable=False, index=True)
+    feed_url = Column(Text, nullable=False)
+
+    status = Column(String(50), nullable=False)  # "success" or "error"
+    items_fetched = Column(Integer, nullable=False, default=0)
+    inserted = Column(Integer, nullable=False, default=0)
+    skipped_existing = Column(Integer, nullable=False, default=0)
+
+    started_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    finished_at = Column(DateTime, nullable=True)
+
+    error_message = Column(Text, nullable=True)

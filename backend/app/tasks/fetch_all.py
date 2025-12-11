@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Optional, Dict, Set
+from datetime import datetime, timezone
+from typing import Optional, Dict, Set, List
 
 from sqlalchemy.orm import Session
 
 from ..db import SessionLocal
-from ..models import Article
-from ..services.fetch_news import fetch_all_feeds
+from ..models import Article, FeedFetchLog
+from ..services.fetch_news import fetch_feed
+from ..services.rss_feeds import RSS_FEEDS
 
 
 def _load_existing_urls(db: Session) -> Set[str]:
@@ -26,7 +28,7 @@ def run_fetch_and_store(db: Optional[Session] = None) -> Dict:
     """
     Fetch all RSS feeds and store new articles in the database.
     If 'db' is not provided, create and manage our own session.
-    Returns a summary dict with counts.
+    Returns a summary dict with overall counts + per-feed stats.
     """
     owns_session = False
     if db is None:
@@ -34,44 +36,104 @@ def run_fetch_and_store(db: Optional[Session] = None) -> Dict:
         owns_session = True
 
     try:
-        items = fetch_all_feeds()
-        total_fetched = len(items)
-
-        # Load existing URLs once, then keep adding to this set as we insert.
+        # Prepare dedupe set
         seen_urls: Set[str] = _load_existing_urls(db)
-        inserted = 0
-        skipped_existing = 0
 
-        for item in items:
-            url = (item.get("url") or "").strip()
-            if not url:
-                continue
+        total_fetched = 0
+        total_inserted = 0
+        total_skipped_existing = 0
+        feed_summaries: List[Dict] = []
 
-            if url in seen_urls:
-                skipped_existing += 1
-                continue
+        for feed in RSS_FEEDS:
+            name = feed["name"]
+            url = feed["url"]
+            category = feed.get("category")
 
-            art = Article(
-                title=item["title"],
-                url=url,
-                source=item["source"],
-                published_at=item["published_at"],
-                summary=item["summary"],
-                category=item.get("category"),
+            started_at = datetime.now(timezone.utc)
+            status = "success"
+            error_message: Optional[str] = None
+            items_fetched = 0
+            inserted = 0
+            skipped_existing = 0
+
+            print(f"[run_fetch_and_store] Fetching feed: {name} ({url})")
+
+            try:
+                items = fetch_feed(name=name, url=url, category=category)
+                items_fetched = len(items)
+            except Exception as e:
+                # Hard failure on this feed – log and continue with others
+                status = "error"
+                error_message = str(e)
+                items = []
+                print(f"[run_fetch_and_store] ERROR fetching {name}: {e}")
+
+            # Insert new articles for this feed
+            for item in items:
+                raw_url = (item.get("url") or "").strip()
+                if not raw_url:
+                    continue
+
+                if raw_url in seen_urls:
+                    skipped_existing += 1
+                    continue
+
+                art = Article(
+                    title=item["title"],
+                    url=raw_url,
+                    source=item["source"],
+                    published_at=item["published_at"],
+                    summary=item["summary"],
+                    category=item.get("category"),
+                )
+                db.add(art)
+                inserted += 1
+                seen_urls.add(raw_url)
+
+            finished_at = datetime.now(timezone.utc)
+
+            # Log per-feed result
+            log = FeedFetchLog(
+                feed_name=name,
+                feed_url=url,
+                status=status,
+                items_fetched=items_fetched,
+                inserted=inserted,
+                skipped_existing=skipped_existing,
+                started_at=started_at,
+                finished_at=finished_at,
+                error_message=error_message,
             )
-            db.add(art)
-            inserted += 1
-            # Mark as seen so we don't add it again in this batch
-            seen_urls.add(url)
+            db.add(log)
+
+            # Aggregate totals
+            total_fetched += items_fetched
+            total_inserted += inserted
+            total_skipped_existing += skipped_existing
+
+            feed_summaries.append(
+                {
+                    "feed_name": name,
+                    "feed_url": url,
+                    "status": status,
+                    "items_fetched": items_fetched,
+                    "inserted": inserted,
+                    "skipped_existing": skipped_existing,
+                    "error_message": error_message,
+                    "started_at": started_at.isoformat(),
+                    "finished_at": finished_at.isoformat(),
+                }
+            )
 
         db.commit()
 
         summary = {
             "total_fetched": total_fetched,
-            "inserted": inserted,
-            "skipped_existing": skipped_existing,
+            "inserted": total_inserted,
+            "skipped_existing": total_skipped_existing,
+            "feeds": feed_summaries,
         }
-        print(f"[run_fetch_and_store] {summary}")
+        print(f"[run_fetch_and_store] Overall summary: {summary}")
         return summary
 
     finally:

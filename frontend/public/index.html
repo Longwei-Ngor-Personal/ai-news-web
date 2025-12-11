@@ -85,18 +85,30 @@
         </table>
       </div>
 
-      <div class="card">
-        <h3>Feed status</h3>
-        <div id="feedlog" class="feedlog small">
-          Backend aggregates feeds and stores them in the database. This sidebar
-          can later show which feeds were fetched, how many items, errors, etc.
+      <section class="panel">
+        <h2>Feed Status</h2>
+        <button id="refreshFeedStatsBtn">Refresh feed status</button>
+        <div class="feed-status-wrapper">
+          <table id="feedStatusTable">
+            <thead>
+              <tr>
+                <th>Feed</th>
+                <th>Status</th>
+                <th>Last Fetch</th>
+                <th>Items (last)</th>
+                <th>Inserted (last)</th>
+                <th>Total Articles</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="7">No data yet. Click "Refresh feed status".</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <hr />
-        <p class="small">
-          Filters (lookback, keywords, per-source cap) are currently UI-only; we’ll
-          wire them to backend query params in the next steps.
-        </p>
-      </div>
+      </section>
     </div>
 
     <!-- Note: scripts are now in the SAME folder -->

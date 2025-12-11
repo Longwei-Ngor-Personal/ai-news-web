@@ -69,3 +69,13 @@ async function adminFetchNow() {
 
   return res.json();
 }
+async function fetchFeedStats() {
+  const url = `${API_BASE}/admin/feed-stats`;
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch feed stats: HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
