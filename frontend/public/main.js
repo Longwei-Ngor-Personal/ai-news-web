@@ -5,11 +5,10 @@ const hoursSel = document.getElementById("hours");
 const maxSel = document.getElementById("max");
 const perSourceSel = document.getElementById("perSource");
 const strictEl = document.getElementById("strict");
-const feedlog = document.getElementById("feedlog");
+const feedlog = document.getElementById("feedlog"); // may be null if not in HTML
 const kwIncEl = document.getElementById("kwInclude");
 const kwExcEl = document.getElementById("kwExclude");
 const feedStatusTbody = document.querySelector("#feedStatusTable tbody");
-
 
 // Helpers
 const dstr = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
@@ -27,6 +26,10 @@ function parseList(raw) {
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
+}
+
+function setFeedlog(msg) {
+  if (feedlog) feedlog.textContent = msg;
 }
 
 // Rendering
@@ -89,8 +92,9 @@ async function loadFromBackend() {
 
   statusEl.textContent = "loading…";
   tbody.innerHTML = "";
-  feedlog.innerHTML =
-    "Backend is fetching from the database with your filters (time window, keywords, per-source cap).";
+  setFeedlog(
+    "Backend is fetching from the database with your filters (time window, keywords, per-source cap)."
+  );
 
   try {
     const articles = await fetchArticles({
@@ -113,6 +117,7 @@ async function loadFromBackend() {
     tbody.appendChild(tr);
   }
 }
+
 document.getElementById("adminFetchBtn").addEventListener("click", async () => {
   try {
     statusEl.textContent = "Running admin fetch…";
@@ -198,9 +203,9 @@ async function loadFeedStatus() {
   }
 }
 
-
-
 // Wire up button + auto-load
 document.getElementById("fetchBtn").addEventListener("click", loadFromBackend);
-document.addEventListener("DOMContentLoaded", loadFromBackend);
-document  .getElementById("refreshFeedStatsBtn").addEventListener("click", loadFeedStatus);
+document.getElementById("refreshFeedStatsBtn").addEventListener("click", loadFeedStatus);
+
+// Since scripts are at end of body, safe to call immediately
+loadFromBackend();
