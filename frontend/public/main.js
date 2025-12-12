@@ -32,6 +32,36 @@ function setFeedlog(msg) {
   if (feedlog) feedlog.textContent = msg;
 }
 
+function getNextScheduledFetch(now = new Date()) {
+  // Cambodia time (UTC+7)
+  const local = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" })
+  );
+
+  const hours = [0, 8, 16];
+
+  for (const h of hours) {
+    const candidate = new Date(local);
+    candidate.setHours(h, 0, 0, 0);
+    if (candidate > local) return candidate;
+  }
+
+  // Otherwise, next run is tomorrow at 00:00
+  const tomorrow = new Date(local);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  return tomorrow;
+}
+
+function fmt(dt) {
+  return dt
+    ? dt.toLocaleString("en-GB", {
+        timeZone: "Asia/Phnom_Penh",
+        hour12: false,
+      })
+    : "–";
+}
+
 // Rendering
 function renderTable(items, statusText = "ok") {
   statusEl.textContent = statusText;
@@ -191,6 +221,22 @@ async function loadFeedStatus() {
   try {
     const rows = await fetchFeedStats();
     renderFeedStatus(rows);
+
+    // Last fetch = most recent finished_at among all feeds
+    let lastFinished = null;
+
+    rows.forEach((r) => {
+      if (r.last_finished_at) {
+        const d = new Date(r.last_finished_at);
+        if (!lastFinished || d > lastFinished) lastFinished = d;
+      }
+    });
+
+    const lastEl = document.getElementById("lastFetchTime");
+    const nextEl = document.getElementById("nextFetchTime");
+
+    if (lastEl) lastEl.textContent = lastFinished ? fmt(lastFinished) : "–";
+    if (nextEl) nextEl.textContent = fmt(getNextScheduledFetch());
   } catch (err) {
     console.error(err);
     feedStatusTbody.innerHTML = "";
@@ -203,9 +249,11 @@ async function loadFeedStatus() {
   }
 }
 
+
 // Wire up button + auto-load
 document.getElementById("fetchBtn").addEventListener("click", loadFromBackend);
 document.getElementById("refreshFeedStatsBtn").addEventListener("click", loadFeedStatus);
 
 // Since scripts are at end of body, safe to call immediately
 loadFromBackend();
+loadFeedStatus();

@@ -92,8 +92,16 @@
       </div>
 
       <section class="panel">
-        <h2>Feed Status</h2>
+      <h2>Feed Status</h2>
+
+      <div class="row">
         <button id="refreshFeedStatsBtn">Refresh feed status</button>
+      </div>
+
+      <div class="row status">
+        <div><strong>Last fetch:</strong> <span id="lastFetchTime">–</span></div>
+        <div><strong>Next scheduled fetch:</strong> <span id="nextFetchTime">–</span></div>
+      </div>
         <div class="feed-status-wrapper">
           <table id="feedStatusTable">
             <thead>
