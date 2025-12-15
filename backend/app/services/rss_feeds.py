@@ -43,47 +43,149 @@ RSS_FEEDS = [
     # --- Major AI labs & companies ---
 
     # Official OpenAI news feed
-    {"name": "OpenAI News", "url": "https://openai.com/news/rss.xml", "category": "AI Labs"},
-
-    # Google AI blog
-    {"name": "Google AI Blog", "url": "https://ai.googleblog.com/feeds/posts/default?alt=rss", "category": "AI Labs"},
-
-    # DeepMind blog
-    {"name": "DeepMind Blog", "url": "https://deepmind.google/discover/blog/rss/", "category": "AI Labs"},
-
-    # Microsoft AI blog
-    {"name": "Microsoft AI Blog", "url": "https://blogs.microsoft.com/ai/feed/", "category": "AI Labs"},
-
-    # Meta AI blog
-    {"name": "Meta AI Blog", "url": "https://ai.meta.com/blog/rss.xml", "category": "AI Labs"},
-
-    # IBM Research (often AI-heavy)
-    {"name": "IBM Research Blog", "url": "https://research.ibm.com/blog/rss.xml", "category": "AI Labs"},
+    {
+        "name": "OpenAI",
+        "url": "https://openai.com/news/rss.xml",
+        "category": "ai_lab",
+    },
+    {
+        "name": "Google AI",
+        "url": "https://research.google/blog/rss/",
+        "category": "ai_lab",
+    },
+    {
+        "name": "DeepMind",
+        "url": "https://deepmind.google/blog/rss.xml",
+        "category": "ai_lab",
+    },
+    {
+        "name": "Meta AI",
+        "url": "https://ai.meta.com/blog/rss/",
+        "category": "ai_lab",
+    },
+    {
+        "name": "MIT News – AI",
+        "url": "https://news.mit.edu/topic/artificial-intelligence/rss",
+        "category": "research",
+    },
+    {
+        "name": "Berkeley AI Research (BAIR)",
+        "url": "https://bair.berkeley.edu/blog/feed.xml",
+        "category": "research",
+    },
 
     # --- AI industry & applications ---
 
-    # TechCrunch AI section
-    {"name": "TechCrunch AI", "url": "https://techcrunch.com/category/artificial-intelligence/feed/", "category": "AI Industry"},
+    {
+        "name": "MIT Technology Review",
+        "url": "https://www.technologyreview.com/feed/",
+        "category": "tech_media",
+    },
+    {
+        "name": "VentureBeat AI",
+        "url": "https://venturebeat.com/category/ai/feed/",
+        "category": "tech_media",
+    },
+    {
+        "name": "TechCrunch",
+        "url": "https://techcrunch.com/feed/",
+        "category": "tech_media",
+    },
+    {
+        "name": "Wired",
+        "url": "https://www.wired.com/feed/rss",
+        "category": "tech_media",
+    },
+    {
+        "name": "The Verge",
+        "url": "https://www.theverge.com/rss/index.xml",
+        "category": "tech_media",
+    },
+    {
+        "name": "IEEE Spectrum",
+        "url": "https://spectrum.ieee.org/rss/fulltext",
+        "category": "research",
+    },
+    {
+        "name": "Science Daily – AI",
+        "url": "https://www.sciencedaily.com/rss/computers_math/artificial_intelligence.xml",
+        "category": "research",
+    },
 
-    # VentureBeat AI section
-    {"name": "VentureBeat AI", "url": "https://venturebeat.com/category/ai/feed/", "category": "AI Industry"},
-
-    # AI Business (enterprise AI)
-    {"name": "AI Business", "url": "https://aibusiness.com/rss.xml", "category": "AI Industry"},
-
-    # MIT Technology Review (mixed tech, but strong AI coverage; our keyword filter will pick AI stories)
-    {"name": "MIT Technology Review", "url": "https://www.technologyreview.com/feed/", "category": "Tech & AI"},
 
     # --- AI policy, governance & society ---
 
-    # OECD.AI – AI policy & governance
-    {"name": "OECD.AI", "url": "https://wp.oecd.ai/feed", "category": "AI Policy"},
+    {
+        "name": "OECD AI",
+        "url": "https://oecd.ai/en/rss.xml",
+        "category": "policy",
+    },
+    {
+        "name": "Euractiv – AI",
+        "url": "https://www.euractiv.com/topics/artificial-intelligence/feed/",
+        "category": "policy",
+    },
+    {
+        "name": "BBC News – AI",
+        "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+        "category": "policy",
+    },
+    {
+        "name": "The Guardian – AI",
+        "url": "https://www.theguardian.com/technology/artificialintelligenceai/rss",
+        "category": "policy",
+    },
+    {
+        "name": "Associated Press – AI",
+        "url": "https://apnews.com/hub/artificial-intelligence?rss",
+        "category": "policy",
+    },
+    {
+        "name": "Financial Times – AI",
+        "url": "https://www.ft.com/artificial-intelligence?format=rss",
+        "category": "policy",
+    },
 
-    # BBC Artificial Intelligence topic
-    {"name": "BBC AI Topic", "url": "https://feeds.bbci.co.uk/news/topics/ce1qrvleleqt", "category": "AI General"},
+    # ASEAN
+    {
+        "name": "Channel News Asia",
+        "url": "https://www.channelnewsasia.com/rssfeeds/8395884",
+        "category": "asia",
+    },
+    {
+        "name": "The Japan Times – Tech",
+        "url": "https://www.japantimes.co.jp/feed/",
+        "category": "asia",
+    },
+    {
+        "name": "The Hindu – Technology",
+        "url": "https://www.thehindu.com/sci-tech/technology/feeder/default.rss",
+        "category": "asia",
+    },
+    {
+        "name": "ANTARA News",
+        "url": "https://en.antaranews.com/rss",
+        "category": "asia",
+    },
+    {
+        "name": "The Jakarta Post",
+        "url": "https://www.thejakartapost.com/rss",
+        "category": "asia",
+    },
+    {
+        "name": "Viet Nam News",
+        "url": "https://vietnamnews.vn/rss",
+        "category": "asia",
+    },
+    {
+        "name": "VN Express International",
+        "url": "https://e.vnexpress.net/rss/news.rss",
+        "category": "asia",
+    },
+    {
+        "name": "Bangkok Post",
+        "url": "https://www.bangkokpost.com/rss/data/technology.xml",
+        "category": "asia",
+    },
 
-    # --- AI research & academia ---
-
-    # MIT News AI topic
-    {"name": "MIT News - AI", "url": "https://news.mit.edu/rss/topic/artificial-intelligence2", "category": "Research & Policy"},
 ]
