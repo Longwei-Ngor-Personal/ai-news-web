@@ -4,12 +4,64 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import List, Dict
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 import httpx
 import feedparser
 
 from .rss_feeds import RSS_FEEDS
 
+TRACKING_PARAMS = {
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "fbclid",
+    "gclid",
+    "mc_cid",
+    "mc_eid",
+    "ref",
+    "ref_src",
+    "igshid",
+    "mkt_tok",
+    "spm",
+}
+
+
+def canonicalize_url(raw_url: str) -> str:
+    """
+    Normalize and canonicalize URLs to improve deduplication.
+    - force https where possible
+    - remove tracking query params
+    - sort remaining query params
+    """
+    if not raw_url:
+        return raw_url
+
+    try:
+        parsed = urlparse(raw_url.strip())
+
+        scheme = parsed.scheme or "https"
+        netloc = parsed.netloc.lower()
+        path = parsed.path.rstrip("/")
+
+        # Filter query params
+        query_params = [
+            (k, v)
+            for k, v in parse_qsl(parsed.query, keep_blank_values=True)
+            if k.lower() not in TRACKING_PARAMS
+        ]
+
+        query = urlencode(sorted(query_params))
+
+        return urlunparse(
+            (scheme, netloc, path, "", query, "")
+        )
+
+    except Exception:
+        # If anything goes wrong, return original URL
+        return raw_url
 
 def _parse_published(entry) -> datetime:
     """
@@ -67,7 +119,7 @@ def fetch_feed(name: str, url: str, category: str | None = None) -> List[Dict]:
         items.append(
             {
                 "title": title.strip(),
-                "url": link.strip(),
+                "url": canonicalize_url(link),
                 "source": name,
                 "published_at": published_at,
                 "summary": summary,
