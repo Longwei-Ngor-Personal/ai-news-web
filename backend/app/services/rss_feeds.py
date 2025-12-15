@@ -92,11 +92,6 @@ RSS_FEEDS = [
         "category": "tech_media",
     },
     {
-        "name": "Wired",
-        "url": "https://www.wired.com/feed/rss",
-        "category": "tech_media",
-    },
-    {
         "name": "The Verge",
         "url": "https://www.theverge.com/rss/index.xml",
         "category": "tech_media",
@@ -153,33 +148,8 @@ RSS_FEEDS = [
         "category": "asia",
     },
     {
-        "name": "The Japan Times – Tech",
-        "url": "https://www.japantimes.co.jp/feed/",
-        "category": "asia",
-    },
-    {
         "name": "The Hindu – Technology",
         "url": "https://www.thehindu.com/sci-tech/technology/feeder/default.rss",
-        "category": "asia",
-    },
-    {
-        "name": "ANTARA News",
-        "url": "https://en.antaranews.com/rss",
-        "category": "asia",
-    },
-    {
-        "name": "The Jakarta Post",
-        "url": "https://www.thejakartapost.com/rss",
-        "category": "asia",
-    },
-    {
-        "name": "Viet Nam News",
-        "url": "https://vietnamnews.vn/rss",
-        "category": "asia",
-    },
-    {
-        "name": "VN Express International",
-        "url": "https://e.vnexpress.net/rss/news.rss",
         "category": "asia",
     },
     {
