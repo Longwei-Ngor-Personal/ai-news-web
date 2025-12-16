@@ -11,24 +11,9 @@ const kwExcEl = document.getElementById("kwExclude");
 const feedStatusTbody = document.querySelector("#feedStatusTable tbody");
 
 // Helpers
+const dstr = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+
 const TZ = "Asia/Phnom_Penh";
-
-// CHANGED: Date-only formatter in Cambodia time (replaces UTC toISOString usage)
-function dstr(dt) {
-  if (!dt) return "";
-  const d = new Date(dt);
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(d);
-
-  const y = parts.find((p) => p.type === "year")?.value;
-  const m = parts.find((p) => p.type === "month")?.value;
-  const day = parts.find((p) => p.type === "day")?.value;
-  return `${y}-${m}-${day}`; // YYYY-MM-DD
-}
 
 function formatLocal(dt) {
   if (!dt) return "–";
@@ -42,9 +27,6 @@ function formatLocal(dt) {
     minute: "2-digit",
   });
 }
-
-// CHANGED: your code uses fmt(...) later; define it to ensure Cambodia time everywhere
-const fmt = formatLocal;
 
 function sanitizeUrl(u) {
   try {
@@ -122,7 +104,6 @@ function renderTable(items, statusText = "ok") {
     tdSource.textContent = article.source || "";
 
     const tdDate = document.createElement("td");
-    // CHANGED: now uses Cambodia-local YYYY-MM-DD (not UTC ISO)
     tdDate.textContent = dstr(article.published_at);
 
     tr.appendChild(tdIndex);
@@ -211,8 +192,9 @@ function renderFeedStatus(rows) {
     tdStatus.textContent = row.last_status || "-";
 
     const tdLastFetch = document.createElement("td");
-    // CHANGED: ensure Cambodia time display (previously no timezone specified)
-    tdLastFetch.textContent = row.last_started_at ? fmt(row.last_started_at) : "-";
+    tdLastFetch.textContent = row.last_started_at
+      ? new Date(row.last_started_at).toLocaleString()
+      : "-";
 
     const tdItems = document.createElement("td");
     tdItems.textContent =
@@ -258,7 +240,6 @@ async function loadFeedStatus() {
     const lastEl = document.getElementById("lastFetchTime");
     const nextEl = document.getElementById("nextFetchTime");
 
-    // CHANGED: fmt is now defined and uses Cambodia timezone
     if (lastEl) lastEl.textContent = lastFinished ? fmt(lastFinished) : "–";
     if (nextEl) nextEl.textContent = fmt(getNextScheduledFetch());
   } catch (err) {
@@ -272,6 +253,7 @@ async function loadFeedStatus() {
     feedStatusTbody.appendChild(tr);
   }
 }
+
 
 // Wire up button + auto-load
 document.getElementById("fetchBtn").addEventListener("click", loadFromBackend);
