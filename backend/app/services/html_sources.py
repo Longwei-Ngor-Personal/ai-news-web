@@ -19,11 +19,9 @@ HTML_SOURCES = [
         ],
     },
 
-    # Khmer Times – your previous URL may return nothing (layout/blocks).
-    # Use the technology tag page (often more consistent for tech items).
     {
-        "name": "Khmer Times - Technology",
-        "url": "https://www.khmertimeskh.com/tag/technology/",
+        "name": "Kiripost Tech",
+        "url": "https://kiripost.com/topics/technology",
         "category": "sea",
         "item_selector": "article",          # tighter than "article a"
         "title_selector": "h3 a, h2 a, a",
