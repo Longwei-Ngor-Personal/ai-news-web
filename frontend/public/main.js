@@ -47,25 +47,24 @@ function setFeedlog(msg) {
   if (feedlog) feedlog.textContent = msg;
 }
 
-function getNextScheduledFetch(now = new Date()) {
-  // Cambodia time (UTC+7)
-  const local = new Date(
-    now.toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" })
-  );
+function getNextScheduledFetch() {
+  // Make a Date object representing "now" in Phnom Penh time
+  const now = new Date();
+  const localNow = new Date(now.toLocaleString("en-US", { timeZone: TZ }));
 
-  const hours = [0, 8, 16];
+  const slots = [0, 8, 16];
 
-  for (const h of hours) {
-    const candidate = new Date(local);
+  for (const h of slots) {
+    const candidate = new Date(localNow);
     candidate.setHours(h, 0, 0, 0);
-    if (candidate > local) return candidate;
+    if (candidate > localNow) return candidate;
   }
 
-  // Otherwise, next run is tomorrow at 00:00
-  const tomorrow = new Date(local);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-  return tomorrow;
+  // Otherwise next run is tomorrow at 00:00
+  const next = new Date(localNow);
+  next.setDate(next.getDate() + 1);
+  next.setHours(0, 0, 0, 0);
+  return next;
 }
 
 // Rendering
