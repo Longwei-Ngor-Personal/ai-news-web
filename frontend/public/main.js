@@ -11,7 +11,11 @@ const kwExcEl = document.getElementById("kwExclude");
 const feedStatusTbody = document.querySelector("#feedStatusTable tbody");
 
 // Helpers
-const dstr = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+function dstr(d) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("en-CA", { timeZone: TZ }); 
+  // en-CA gives YYYY-MM-DD format
+}
 
 const TZ = "Asia/Phnom_Penh";
 
@@ -192,9 +196,7 @@ function renderFeedStatus(rows) {
     tdStatus.textContent = row.last_status || "-";
 
     const tdLastFetch = document.createElement("td");
-    tdLastFetch.textContent = row.last_started_at
-      ? new Date(row.last_started_at).toLocaleString()
-      : "-";
+    tdLastFetch.textContent = row.last_started_at ? fmt(row.last_started_at) : "-";
 
     const tdItems = document.createElement("td");
     tdItems.textContent =
