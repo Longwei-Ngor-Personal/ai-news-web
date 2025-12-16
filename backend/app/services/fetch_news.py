@@ -1,7 +1,7 @@
 # backend/app/services/fetch_news.py
 
 from __future__ import annotations
-
+from .url_utils import canonicalize_url
 from datetime import datetime, timezone
 from typing import List, Dict
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode

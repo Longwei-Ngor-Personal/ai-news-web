@@ -10,6 +10,8 @@ from ..db import get_db
 from ..models import FeedFetchLog, Article
 from ..tasks.fetch_all import run_fetch_and_store
 from ..services.rss_feeds import RSS_FEEDS
+from ..services.html_sources import HTML_SOURCES
+
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -37,7 +39,9 @@ def admin_feed_stats(db: Session = Depends(get_db)) -> List[Dict]:
     """
     results: List[Dict] = []
 
-    for feed in RSS_FEEDS:
+    all_sources = RSS_FEEDS + HTML_SOURCES
+
+    for feed in all_sources:
         name = feed["name"]
         url = feed["url"]
 
