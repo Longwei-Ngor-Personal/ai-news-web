@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Set
 from urllib.parse import urljoin
+import re
+from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -30,6 +32,18 @@ class HtmlItem:
     published_at: datetime
     summary: Optional[str] = None
 
+def _compiled(patterns):
+    return [re.compile(p, re.IGNORECASE) for p in (patterns or [])]
+
+def _matches_any(url: str, regs) -> bool:
+    return any(r.search(url) for r in regs)
+
+def _in_layout_noise(node) -> bool:
+    # skip links inside header/nav/footer
+    try:
+        return node.find_parent(["nav", "header", "footer"]) is not None
+    except Exception:
+        return False
 
 def _safe_parse_datetime(raw: Optional[str]) -> datetime:
     """
@@ -65,6 +79,8 @@ def fetch_html_source(source: Dict) -> List[Dict]:
     date_attr = source.get("date_attr")
     summary_selector = source.get("summary_selector")
     max_items = int(source.get("max_items") or 30)
+    include_regs = _compiled(source.get("include_url_regex"))
+    exclude_regs = _compiled(source.get("exclude_url_regex"))
 
     res = requests.get(
         listing_url,
@@ -108,6 +124,25 @@ def fetch_html_source(source: Dict) -> List[Dict]:
         if abs_url in seen:
             continue
         seen.add(abs_url)
+        
+                # Skip nav/header/footer anchors quickly
+        if _in_layout_noise(link_node):
+            continue
+
+        # Domain sanity: require same host as listing URL (prevents social/share links)
+        try:
+            host_listing = urlparse(listing_url).netloc.lower()
+            host_link = urlparse(abs_url).netloc.lower()
+            if host_listing and host_link and host_listing != host_link:
+                continue
+        except Exception:
+            pass
+
+        # Apply per-source include/exclude URL regex rules
+        if include_regs and not _matches_any(abs_url, include_regs):
+            continue
+        if exclude_regs and _matches_any(abs_url, exclude_regs):
+            continue
 
         # Title
         title = ""
