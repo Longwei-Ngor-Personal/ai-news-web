@@ -13,6 +13,21 @@ const feedStatusTbody = document.querySelector("#feedStatusTable tbody");
 // Helpers
 const dstr = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 
+const TZ = "Asia/Phnom_Penh";
+
+function formatLocal(dt) {
+  if (!dt) return "–";
+  return new Date(dt).toLocaleString("en-GB", {
+    timeZone: TZ,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function sanitizeUrl(u) {
   try {
     const url = new URL(u, window.location.href);
@@ -51,15 +66,6 @@ function getNextScheduledFetch(now = new Date()) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
   return tomorrow;
-}
-
-function fmt(dt) {
-  return dt
-    ? dt.toLocaleString("en-GB", {
-        timeZone: "Asia/Phnom_Penh",
-        hour12: false,
-      })
-    : "–";
 }
 
 // Rendering
