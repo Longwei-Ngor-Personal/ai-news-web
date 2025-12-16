@@ -15,7 +15,7 @@ const dstr = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 
 const TZ = "Asia/Phnom_Penh";
 
-function formatLocal(dt) {
+function fmt(dt) {
   if (!dt) return "–";
   return new Date(dt).toLocaleString("en-GB", {
     timeZone: TZ,
