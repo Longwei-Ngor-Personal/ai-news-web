@@ -61,15 +61,17 @@ def run_fetch_and_store(db: Optional[Session] = None) -> Dict:
 
         # HTML sources
         for s in HTML_SOURCES:
-            sources.append(
-                {
-                    "type": "html",
-                    "name": s["name"],
-                    "url": s["url"],
-                    "category": s.get("category"),
-                    "raw": s,
-                }
-            )
+        if not s.get("enabled", True):
+            continue
+        sources.append(
+            {
+                "type": "html",
+                "name": s["name"],
+                "url": s["url"],
+                "category": s.get("category"),
+                "raw": s,
+            }
+        )
 
         for src in sources:
             name = src["name"]
