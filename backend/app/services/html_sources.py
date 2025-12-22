@@ -6,17 +6,25 @@ HTML_SOURCES = [
         "url": "https://www.scmp.com/tech",
         "category": "asia",
         "enabled": True,
-        "item_selector": "article",
-        "title_selector": "a",
-        "link_attr": "href",
-        "date_selector": "time",
-        "date_attr": "datetime",
-        "summary_selector": None,
-        "max_items": 50,
-        "include_url_regex": [r"^https?://www\.scmp\.com/.*/article/\d+"],
-        "exclude_url_regex": [r"/rss", r"/newsletters", r"/subscription", r"/privacy", r"/terms"],
-    },
 
+        # Use all anchors + regex filtering (robust for SCMP)
+        "item_selector": "a",
+        "link_attr": "href",
+
+        # Only keep real article pages
+        "include_url_regex": [r"^https?://www\.scmp\.com/.*/article/\d+"],
+
+        # Optional: drop common junk paths (safe)
+        "exclude_url_regex": [
+            r"/video/",
+            r"/podcast/",
+            r"/newsletter",
+            r"/subscribe",
+            r"/contact",
+            r"/privacy",
+            r"/terms",
+        ],
+    },
     {
         "name": "Kiripost Tech",
         "url": "https://kiripost.com/topics/technology",
