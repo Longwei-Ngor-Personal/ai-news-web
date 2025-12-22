@@ -12,6 +12,93 @@ from bs4 import BeautifulSoup
 from dateutil import parser as dateparser
 
 from .url_utils import canonicalize_url
+from typing import Dict, Any
+
+def debug_html_source(source: Dict) -> Dict[str, Any]:
+    """
+    Debug scraper for a single HTML source.
+    Returns structured diagnostics: HTTP status, page length, extracted links count,
+    sample URLs, and which filters removed items.
+    """
+    listing_url = source["url"]
+
+    r = _http_get(listing_url)  # use whatever helper you already use (requests.get wrapper)
+    html = r.text or ""
+    soup = BeautifulSoup(html, "lxml") if html else None
+
+    result: Dict[str, Any] = {
+        "url": listing_url,
+        "http_status": getattr(r, "status_code", None),
+        "final_url": str(getattr(r, "url", listing_url)),
+        "html_bytes": len(html.encode("utf-8")) if html else 0,
+        "found_nodes": 0,
+        "raw_links": 0,
+        "kept_links": 0,
+        "dropped_nav": 0,
+        "dropped_domain": 0,
+        "dropped_include": 0,
+        "dropped_exclude": 0,
+        "samples_raw": [],
+        "samples_kept": [],
+    }
+
+    if not soup:
+        result["error"] = "Empty HTML or parse failed"
+        return result
+
+    nodes = soup.select(source.get("item_selector") or "a")
+    result["found_nodes"] = len(nodes)
+
+    include_regs = _compiled(source.get("include_url_regex"))
+    exclude_regs = _compiled(source.get("exclude_url_regex"))
+
+    host_listing = urlparse(listing_url).netloc.lower()
+
+    kept = []
+    raw = []
+
+    for node in nodes:
+        link_node = node
+        if node.name != "a":
+            a = node.select_one("a")
+            if a:
+                link_node = a
+            else:
+                continue
+
+        href = (link_node.get(source.get("link_attr") or "href") or "").strip()
+        if not href:
+            continue
+
+        abs_url = urljoin(listing_url, href)
+        abs_url = canonicalize_url(abs_url)
+
+        raw.append(abs_url)
+
+        if _in_layout_noise(link_node):
+            result["dropped_nav"] += 1
+            continue
+
+        host_link = urlparse(abs_url).netloc.lower()
+        if host_listing and host_link and host_listing != host_link:
+            result["dropped_domain"] += 1
+            continue
+
+        if include_regs and not _matches_any(abs_url, include_regs):
+            result["dropped_include"] += 1
+            continue
+
+        if exclude_regs and _matches_any(abs_url, exclude_regs):
+            result["dropped_exclude"] += 1
+            continue
+
+        kept.append(abs_url)
+
+    result["raw_links"] = len(raw)
+    result["kept_links"] = len(kept)
+    result["samples_raw"] = raw[:10]
+    result["samples_kept"] = kept[:10]
+    return result
 
 
 DEFAULT_HEADERS = {

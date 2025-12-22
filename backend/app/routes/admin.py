@@ -11,10 +11,20 @@ from ..models import FeedFetchLog, Article
 from ..tasks.fetch_all import run_fetch_and_store
 from ..services.rss_feeds import RSS_FEEDS
 from ..services.html_sources import HTML_SOURCES
-
+from ..services.fetch_html import debug_html_source
+from ..services.html_sources import HTML_SOURCES
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
+@router.get("/debug-html")
+def admin_debug_html(name: str):
+    """
+    Debug HTML scraping for one HTML source by name.
+    """
+    src = next((s for s in HTML_SOURCES if s["name"] == name), None)
+    if not src:
+        raise HTTPException(status_code=404, detail=f"Unknown HTML source: {name}")
+    return debug_html_source(src)
 
 @router.post("/fetch-now")
 def admin_fetch_now(db: Session = Depends(get_db)):
