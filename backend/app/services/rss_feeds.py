@@ -92,11 +92,6 @@ RSS_FEEDS = [
         "category": "tech_media",
     },
     {
-        "name": "The Verge",
-        "url": "https://www.theverge.com/rss/index.xml",
-        "category": "tech_media",
-    },
-    {
         "name": "IEEE Spectrum",
         "url": "https://spectrum.ieee.org/rss/fulltext",
         "category": "research",
