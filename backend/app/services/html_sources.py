@@ -6,9 +6,8 @@ HTML_SOURCES = [
         "url": "https://www.scmp.com/tech",
         "category": "asia",
         "enabled": True,
-
-        # Use all anchors + regex filtering (robust for SCMP)
-        "item_selector": "a",
+        "item_selector": "article",
+        "title_selector": "a",
         "link_attr": "href",
 
         # Only keep real article pages
