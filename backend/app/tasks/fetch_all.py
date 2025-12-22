@@ -1,3 +1,5 @@
+# backend/app/tasks/fetch_all.py
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -9,10 +11,8 @@ from ..db import SessionLocal
 from ..models import Article, FeedFetchLog
 from ..services.fetch_news import fetch_feed
 from ..services.rss_feeds import RSS_FEEDS
-
-# Freeze HTML sourcing for now (separate project later)
-ENABLE_HTML_SOURCES = False
-
+from ..services.html_sources import HTML_SOURCES
+from ..services.fetch_html import fetch_html_source
 
 def _load_existing_urls(db: Session) -> Set[str]:
     """
@@ -37,6 +37,7 @@ def run_fetch_and_store(db: Optional[Session] = None) -> Dict:
         owns_session = True
 
     try:
+        # Prepare dedupe set
         seen_urls: Set[str] = _load_existing_urls(db)
 
         total_fetched = 0
@@ -46,7 +47,7 @@ def run_fetch_and_store(db: Optional[Session] = None) -> Dict:
 
         sources = []
 
-        # RSS sources only
+        # RSS sources
         for f in RSS_FEEDS:
             sources.append(
                 {
@@ -54,6 +55,21 @@ def run_fetch_and_store(db: Optional[Session] = None) -> Dict:
                     "name": f["name"],
                     "url": f["url"],
                     "category": f.get("category"),
+                    "raw": f,
+                }
+            )
+
+        # HTML sources
+        for s in HTML_SOURCES:
+            if not s.get("enabled", True):
+                continue
+            sources.append(
+                {
+                    "type": "html",
+                    "name": s["name"],
+                    "url": s["url"],
+                    "category": s.get("category"),
+                    "raw": s,
                 }
             )
 
@@ -61,6 +77,7 @@ def run_fetch_and_store(db: Optional[Session] = None) -> Dict:
             name = src["name"]
             url = src["url"]
             category = src.get("category")
+            src_type = src["type"]
 
             started_at = datetime.now(timezone.utc)
             status = "success"
@@ -69,17 +86,23 @@ def run_fetch_and_store(db: Optional[Session] = None) -> Dict:
             inserted = 0
             skipped_existing = 0
 
-            print(f"[run_fetch_and_store] Fetching rss source: {name} ({url})")
+            print(f"[run_fetch_and_store] Fetching {src_type} source: {name} ({url})")
 
             try:
-                items = fetch_feed(name=name, url=url, category=category)
+                if src_type == "rss":
+                    items = fetch_feed(name=name, url=url, category=category)
+                else:
+                    items = fetch_html_source(src["raw"])
+
                 items_fetched = len(items)
+
             except Exception as e:
                 status = "error"
                 error_message = str(e)
                 items = []
                 print(f"[run_fetch_and_store] ERROR fetching {name}: {e}")
 
+            # Insert new articles for this source
             for item in items:
                 raw_url = (item.get("url") or "").strip()
                 if not raw_url:
@@ -103,6 +126,7 @@ def run_fetch_and_store(db: Optional[Session] = None) -> Dict:
 
             finished_at = datetime.now(timezone.utc)
 
+            # Log per-source result (reusing FeedFetchLog)
             log = FeedFetchLog(
                 feed_name=name,
                 feed_url=url,
@@ -151,4 +175,6 @@ def run_fetch_and_store(db: Optional[Session] = None) -> Dict:
 
 
 if __name__ == "__main__":
+    # Allow running this as:
+    #   docker compose exec backend python -m app.tasks.fetch_all
     run_fetch_and_store()

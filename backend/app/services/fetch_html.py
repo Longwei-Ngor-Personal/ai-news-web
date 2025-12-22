@@ -54,9 +54,9 @@ def debug_html_source(source: Dict) -> Dict[str, Any]:
 
     # Catch anti-bot / challenge pages quickly
     if r.status_code in (403, 429) or "cf-mitigated: challenge" in lowered or "attention required" in lowered:
-    result["note"] = "Blocked / challenged (Cloudflare or rate limit). HTML may not contain real content."
-    result["samples_raw"] = [html[:300]]
-    return result
+        result["note"] = "Blocked / challenged (Cloudflare or rate limit). HTML may not contain real content."
+        result["samples_raw"] = [html[:300]]
+        return result
 
     soup = BeautifulSoup(html, "lxml")
 
