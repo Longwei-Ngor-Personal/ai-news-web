@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from dateutil import parser as dateparser
 
 from .url_utils import canonicalize_url
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 def debug_html_source(source: Dict) -> Dict[str, Any]:
     """
@@ -22,19 +22,29 @@ def debug_html_source(source: Dict) -> Dict[str, Any]:
     """
     listing_url = source["url"]
 
-    r = _http_get(listing_url)  # use whatever helper you already use (requests.get wrapper)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Connection": "close",
+    }
+
+    timeout = float(source.get("timeout", 15))
+
+    r = requests.get(listing_url, headers=headers, timeout=timeout, allow_redirects=True)
     html = r.text or ""
-    soup = BeautifulSoup(html, "lxml") if html else None
 
     result: Dict[str, Any] = {
+        "name": source.get("name"),
         "url": listing_url,
-        "http_status": getattr(r, "status_code", None),
-        "final_url": str(getattr(r, "url", listing_url)),
+        "http_status": r.status_code,
+        "final_url": r.url,
         "html_bytes": len(html.encode("utf-8")) if html else 0,
         "found_nodes": 0,
         "raw_links": 0,
         "kept_links": 0,
-        "dropped_nav": 0,
+        "dropped_empty": 0,
+        "dropped_fragment": 0,
         "dropped_domain": 0,
         "dropped_include": 0,
         "dropped_exclude": 0,
@@ -42,53 +52,67 @@ def debug_html_source(source: Dict) -> Dict[str, Any]:
         "samples_kept": [],
     }
 
-    if not soup:
-        result["error"] = "Empty HTML or parse failed"
+    # Catch anti-bot / challenge pages quickly
+    lowered = html.lower()
+    if r.status_code in (403, 429) or "cf-mitigated" in lowered or "cloudflare" in lowered:
+        result["note"] = "Blocked / challenged (Cloudflare or rate limit). HTML may not contain real content."
+        # still return samples for inspection
+        result["samples_raw"] = [html[:300]]
         return result
 
-    nodes = soup.select(source.get("item_selector") or "a")
+    soup = BeautifulSoup(html, "lxml")
+
+    item_selector = source.get("item_selector") or "a"
+    link_attr = source.get("link_attr") or "href"
+
+    nodes = soup.select(item_selector)
     result["found_nodes"] = len(nodes)
 
-    include_regs = _compiled(source.get("include_url_regex"))
-    exclude_regs = _compiled(source.get("exclude_url_regex"))
+    include_patterns = source.get("include_url_regex") or []
+    exclude_patterns = source.get("exclude_url_regex") or []
 
-    host_listing = urlparse(listing_url).netloc.lower()
+    include_res = [re.compile(p) for p in include_patterns] if include_patterns else []
+    exclude_res = [re.compile(p) for p in exclude_patterns] if exclude_patterns else []
 
-    kept = []
-    raw = []
+    listing_host = urlparse(listing_url).netloc.lower()
+
+    raw: List[str] = []
+    kept: List[str] = []
+
+    def matches_any(url: str, regs: List[re.Pattern]) -> bool:
+        return any(rx.search(url) for rx in regs)
 
     for node in nodes:
+        # If selector is not <a>, try find an <a> inside
         link_node = node
-        if node.name != "a":
+        if getattr(node, "name", None) != "a":
             a = node.select_one("a")
-            if a:
-                link_node = a
-            else:
+            if not a:
                 continue
+            link_node = a
 
-        href = (link_node.get(source.get("link_attr") or "href") or "").strip()
+        href = (link_node.get(link_attr) or "").strip()
         if not href:
+            result["dropped_empty"] += 1
+            continue
+        if href.startswith("#"):
+            result["dropped_fragment"] += 1
             continue
 
         abs_url = urljoin(listing_url, href)
-        abs_url = canonicalize_url(abs_url)
 
         raw.append(abs_url)
 
-        if _in_layout_noise(link_node):
-            result["dropped_nav"] += 1
-            continue
-
-        host_link = urlparse(abs_url).netloc.lower()
-        if host_listing and host_link and host_listing != host_link:
+        link_host = urlparse(abs_url).netloc.lower()
+        if listing_host and link_host and listing_host != link_host:
             result["dropped_domain"] += 1
             continue
 
-        if include_regs and not _matches_any(abs_url, include_regs):
+        if include_res and not matches_any(abs_url, include_res):
             result["dropped_include"] += 1
             continue
 
-        if exclude_regs and _matches_any(abs_url, exclude_regs):
+        if exclude_res and matches_any(abs_url, exclude_res):
             result["dropped_exclude"] += 1
             continue
 
