@@ -45,6 +45,22 @@
         </label>
       </div>
 
+      <!-- Presets -->
+      <div class="filter-row">
+        <label for="presetSelect">Preset</label>
+        <select id="presetSelect">
+          <option value="ai_balanced" selected>AI Balanced</option>
+          <option value="ai_policy">AI Policy / Governance</option>
+          <option value="ai_research">AI Research / Engineering</option>
+          <option value="none">None (leave as-is)</option>
+        </select>
+
+        <label class="checkbox">
+          <input type="checkbox" id="presetAutoApply" checked />
+          Auto-apply preset on load
+        </label>
+      </div>
+
       <div class="row">
         <label class="inline">
           <input type="checkbox" id="strict" />

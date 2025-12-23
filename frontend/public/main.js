@@ -10,6 +10,155 @@ const kwIncEl = document.getElementById("kwInclude");
 const kwExcEl = document.getElementById("kwExclude");
 const feedStatusTbody = document.querySelector("#feedStatusTable tbody");
 
+// -------------------------
+// Preset definitions
+// -------------------------
+const PRESETS = {
+  ai_balanced: {
+    include: [
+      "artificial intelligence",
+      "generative ai",
+      "genai",
+      "llm",
+      "large language model",
+      "machine learning",
+      "deep learning",
+      "foundation model",
+      "transformer",
+      "inference",
+      "fine-tuning",
+      "rag",
+      "openai",
+      "anthropic",
+      "claude",
+      "gemini",
+      "copilot",
+      "chatgpt"
+    ].join(", "),
+    exclude: [
+      "crypto",
+      "bitcoin",
+      "ethereum",
+      "nft",
+      "coupon",
+      "deal",
+      "discount",
+      "review",
+      "buy",
+      "smartphone",
+      "phone",
+      "gaming",
+      "celebrity",
+      "sponsored",
+      "giveaway",
+      "lottery",
+      "price",
+      "stock",
+      "earnings",
+      "job",
+      "hiring",
+      "internship"
+    ].join(", "),
+    strict: true,
+    perSourceCap: 5,
+    hours: 48,
+    limit: 80
+  },
+
+  ai_policy: {
+    include: [
+      "ai act",
+      "regulation",
+      "governance",
+      "policy",
+      "standards",
+      "safety",
+      "risk",
+      "compliance",
+      "audit",
+      "oversight",
+      "responsible ai"
+    ].join(", "),
+    exclude: [
+      "crypto",
+      "coupon",
+      "deal",
+      "review",
+      "buy",
+      "smartphone",
+      "gaming",
+      "celebrity",
+      "sponsored",
+      "job",
+      "hiring"
+    ].join(", "),
+    strict: true,
+    perSourceCap: 5,
+    hours: 168,
+    limit: 80
+  },
+
+  ai_research: {
+    include: [
+      "paper",
+      "preprint",
+      "arxiv",
+      "benchmark",
+      "evaluation",
+      "model",
+      "dataset",
+      "inference",
+      "fine-tuning",
+      "training",
+      "alignment",
+      "transformer",
+      "multimodal"
+    ].join(", "),
+    exclude: [
+      "crypto",
+      "coupon",
+      "deal",
+      "review",
+      "buy",
+      "smartphone",
+      "gaming",
+      "celebrity",
+      "sponsored",
+      "stock",
+      "earnings"
+    ].join(", "),
+    strict: true,
+    perSourceCap: 5,
+    hours: 168,
+    limit: 80
+  }
+};
+
+function $(id) {
+  return document.getElementById(id);
+}
+
+/**
+ * Applies a preset to the filter inputs WITHOUT preventing users from editing afterward.
+ * It simply sets default values into the boxes and toggles.
+ */
+function applyPreset(presetKey) {
+  if (!presetKey || presetKey === "none") return;
+
+  const preset = PRESETS[presetKey];
+  if (!preset) return;
+
+  // These IDs MATCH your actual HTML + JS bindings
+  if (kwIncEl) kwIncEl.value = preset.include;
+  if (kwExcEl) kwExcEl.value = preset.exclude;
+
+  if (strictEl) strictEl.checked = !!preset.strict;
+  if (hoursSel) hoursSel.value = String(preset.hours);
+  if (maxSel) maxSel.value = String(preset.limit);
+  if (perSourceSel) perSourceSel.value = String(preset.perSourceCap);
+}
+
+
 // Helpers
 function dstr(d) {
   if (!d) return "";
@@ -260,6 +409,28 @@ async function loadFeedStatus() {
 // Wire up button + auto-load
 document.getElementById("fetchBtn").addEventListener("click", loadFromBackend);
 document.getElementById("refreshFeedStatsBtn").addEventListener("click", loadFeedStatus);
+document.addEventListener("DOMContentLoaded", () => {
+  const presetSelect = $("presetSelect");
+  const presetAutoApply = $("presetAutoApply");
+
+  // Default: AI Balanced on first load (as you requested)
+  if (presetSelect && presetAutoApply && presetAutoApply.checked) {
+    applyPreset(presetSelect.value || "ai_balanced");
+  } else if (presetSelect && !presetSelect.value) {
+    presetSelect.value = "ai_balanced";
+    applyPreset("ai_balanced");
+  }
+
+  // When user changes preset, populate the boxes (still editable afterward)
+  if (presetSelect) {
+    presetSelect.addEventListener("change", () => {
+      applyPreset(presetSelect.value);
+    });
+  }
+
+  // Optional: If user unchecks auto-apply, do nothing on load next time
+  // (If you want persistence, we can add localStorage—still frontend-only.)
+});
 
 // Since scripts are at end of body, safe to call immediately
 loadFromBackend();
