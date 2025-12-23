@@ -152,5 +152,180 @@ RSS_FEEDS = [
         "url": "https://www.bangkokpost.com/rss/data/technology.xml",
         "category": "asia",
     },
+    {
+        "name": "CGTN Sci-Tech",
+        "url": "https://www.cgtn.com/feeds/rss/sci-tech.xml",
+        "category": "science_tech_news"
+    },
+    {
+        "name": "Xinhua China Science",
+        "url": "http://www.xinhuanet.com/english/rss/china.xml",
+        "category": "science_news"
+    },
+    {
+        "name": "Japan Times Tech",
+        "url": "https://www.japantimes.co.jp/feed/",
+        "category": "tech_news"
+    },
+    {
+        "name": "Yonhap News Agency (YNA)",
+        "url": "https://en.yna.co.kr/RSS/news.xml",
+        "category": "general_news"
+    },
+    {
+        "name": "Borneo Bulletin",
+        "url": "https://borneobulletin.com.bn/feed/",
+        "category": "general_news"
+    },
+    {
+        "name": "BruDirect",
+        "url": "https://brudirect.com/news/rss",
+        "category": "general_news"
+    },
+    {
+        "name": "RTB News",
+        "url": "https://www.rtbnews.rtb.gov.bn/RSS",
+        "category": "general_news"
+    },
+    {
+        "name": "The Scoop (Brunei)",
+        "url": "https://thescoop.co/feed/",
+        "category": "general_news"
+    },
+    {
+        "name": "The Bruneian",
+        "url": "https://thebruneian.news/feed/",
+        "category": "general_news"
+    },
+    {
+        "name": "Fresh News (EN)",
+        "url": "https://en.freshnewsasia.com/index.php/en/rss.html",
+        "category": "general_news"
+    },
+    {
+        "name": "Phnom Penh Post",
+        "url": "https://www.phnompenhpost.com/rss.xml",
+        "category": "general_news"
+    },
+    {
+        "name": "Cambodianess",
+        "url": "https://cambodianess.com/rss",
+        "category": "general_news"
+    },
+    {
+        "name": "B2B Cambodia",
+        "url": "https://b2b-cambodia.com/rss",
+        "category": "business_news"
+    },
+    {
+        "name": "Liputan6 News",
+        "url": "https://www.liputan6.com/rss",
+        "category": "general_news"
+    },
+    {
+        "name": "Katadata Digital",
+        "url": "https://katadata.co.id/rss",
+        "category": "business_tech_news"
+    },
+    {
+        "name": "Tech in Asia (Indonesia)",
+        "url": "https://www.techinasia.com/tag/indonesia/feed",
+        "category": "tech_media"
+    },
+    {
+        "name": "Fintech News Indonesia",
+        "url": "https://fintechnews.sg/category/indonesia/feed/",
+        "category": "fintech_news"
+    },
+    {
+        "name": "Laotian Times",
+        "url": "https://laotiantimes.com/feed/",
+        "category": "general_news"
+    },
+    {
+        "name": "Vientiane Times",
+        "url": "https://www.vientianetimes.org.la/rss.xml",
+        "category": "general_news"
+    },
+    {
+        "name": "KPL Laos",
+        "url": "http://kpl.gov.la/En/rss.aspx",
+        "category": "government_news"
+    },
+    {
+        "name": "The Star",
+        "url": "https://www.thestar.com.my/rss/",
+        "category": "general_news"
+    },
+    {
+        "name": "New Straits Times",
+        "url": "https://www.nst.com.my/rss",
+        "category": "general_news"
+    },
+    {
+        "name": "Malay Mail",
+        "url": "https://www.malaymail.com/rss",
+        "category": "general_news"
+    },
+    {
+        "name": "Free Malaysia Today",
+        "url": "https://www.freemalaysiatoday.com/feed/",
+        "category": "general_news"
+    },
+    {
+        "name": "The Edge Malaysia",
+        "url": "https://www.theedgemarkets.com/rss",
+        "category": "business_news"
+    },
+    {
+        "name": "BERNAMA",
+        "url": "https://www.bernama.com/en/rss.php",
+        "category": "wire_news"
+    },
+    {
+        "name": "The Irrawaddy",
+        "url": "https://www.irrawaddy.com/feed",
+        "category": "general_news"
+    },
+    {
+        "name": "Frontier Myanmar",
+        "url": "https://www.frontiermyanmar.net/en/feed/",
+        "category": "investigative_news"
+    },
+    {
+        "name": "Mizzima (EN)",
+        "url": "https://mizzima.com/rss.xml",
+        "category": "general_news"
+    },
+    {
+        "name": "Myanmar Now",
+        "url": "https://myanmar-now.org/en/rss",
+        "category": "general_news"
+    },
+    {
+        "name": "Inquirer Tech",
+        "url": "https://technology.inquirer.net/feed",
+        "category": "tech_news"
+    },
+    {
+        "name": "Philippine Star",
+        "url": "https://www.philstar.com/rss",
+        "category": "general_news"
+    },
+    {
+        "name": "Manila Times",
+        "url": "https://www.manilatimes.net/feed/",
+        "category": "general_news"
+    },
+    {
+        "name": "Mothership",
+        "url": "https://mothership.sg/feed/",
+        "category": "general_news"
+    },
+    {
+        "name": "Today Online",
+        "url": "https://www.todayonline.com/rss",
+        "category": "general_news"
+    }
 
 ]
