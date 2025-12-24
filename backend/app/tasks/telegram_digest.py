@@ -3,7 +3,6 @@ import json
 import requests
 from urllib.parse import urlencode
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 SENT_FILE = os.path.join(DATA_DIR, "telegram_sent_urls.json")
@@ -109,8 +108,7 @@ def rank_articles(items: list[dict]) -> list[dict]:
     return sorted(items, key=key, reverse=True)
 
 def build_message(top_items: list[dict]) -> str:
-    tz = ZoneInfo("Asia/Phnom_Penh")
-    now = datetime.now(timezone.utc).astimezone(tz).strftime("%Y-%m-%d %H:%M")
+    now = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M")
     lines = [f"AI News Digest (Top 10) — {now}", ""]
     for i, a in enumerate(top_items, start=1):
         title = a.get("title") or "(untitled)"
