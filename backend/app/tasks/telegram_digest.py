@@ -82,7 +82,7 @@ def save_sent_urls(urls: set[str]) -> None:
 
 def fetch_articles() -> list[dict]:
     qs = urlencode(CURATED_PARAMS)
-    url = f"{API_BASE}/api/articles?{qs}"
+    url = f"{API_BASE}/articles?{qs}"
     r = requests.get(url, timeout=30)
     r.raise_for_status()
     return r.json()
