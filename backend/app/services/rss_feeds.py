@@ -138,6 +138,11 @@ RSS_FEEDS = [
 
     # ASEAN
     {
+        "name": "Khmer Times",
+        "url": " https://www.khmertimeskh.com/feed/",
+        "category": "Khmer",
+    },
+    {
         "name": "Channel News Asia",
         "url": "https://www.channelnewsasia.com/rssfeeds/8395884",
         "category": "asia",

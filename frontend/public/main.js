@@ -16,6 +16,7 @@ const feedStatusTbody = document.querySelector("#feedStatusTable tbody");
 const PRESETS = {
   ai_balanced: {
     include: [
+      "ai",
       "artificial intelligence",
       "generative ai",
       "genai",
